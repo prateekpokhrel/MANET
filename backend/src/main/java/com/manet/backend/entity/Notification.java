@@ -1,4 +1,4 @@
-package com.neuroheal.entity;
+package com.manet.backend.entity;
 
 public class Notification {
 
