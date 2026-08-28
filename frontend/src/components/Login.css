@@ -1,0 +1,1541 @@
+/* =========================================================
+   MANET AUTHENTICATION
+   Dark Neutral + Live Network
+========================================================= */
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+    min-height: 100%;
+}
+
+body {
+    margin: 0;
+
+    font-family:
+            Inter,
+            -apple-system,
+            BlinkMacSystemFont,
+            "Segoe UI",
+            sans-serif;
+
+    background: #0b0d0f;
+    color: #f1f3f4;
+}
+
+button,
+input {
+    font-family: inherit;
+}
+
+
+/* =========================================================
+   MAIN PAGE
+========================================================= */
+
+.auth-page {
+    width: 100%;
+    min-height: 100vh;
+
+    display: grid;
+    grid-template-columns: 52% 48%;
+
+    background: #0b0d0f;
+
+    overflow: hidden;
+}
+
+
+/* =========================================================
+   LEFT PANEL
+========================================================= */
+
+.auth-visual {
+    position: relative;
+
+    min-height: 100vh;
+
+    padding: 48px 60px;
+
+    overflow: hidden;
+
+    background:
+            radial-gradient(
+                    circle at 20% 38%,
+                    rgba(126, 231, 135, 0.045),
+                    transparent 32%
+            ),
+            linear-gradient(
+                    145deg,
+                    #131619 0%,
+                    #0f1215 48%,
+                    #0a0d10 100%
+            );
+
+    border-right: 1px solid #25292d;
+}
+
+
+/* =========================================================
+   GRID
+========================================================= */
+
+.auth-visual::before {
+    content: "";
+
+    position: absolute;
+    inset: 0;
+
+    background-image:
+            linear-gradient(
+                    rgba(255, 255, 255, 0.018) 1px,
+                    transparent 1px
+            ),
+            linear-gradient(
+                    90deg,
+                    rgba(255, 255, 255, 0.018) 1px,
+                    transparent 1px
+            );
+
+    background-size: 48px 48px;
+
+    pointer-events: none;
+}
+
+
+/* =========================================================
+   BRAND
+========================================================= */
+
+.brand {
+    position: relative;
+    z-index: 10;
+
+    display: flex;
+    align-items: center;
+
+    gap: 13px;
+}
+
+.brand-mark {
+    width: 45px;
+    height: 45px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border: 1px solid rgba(126, 231, 135, 0.5);
+
+    border-radius: 10px;
+
+    background: rgba(126, 231, 135, 0.025);
+
+    color: #7ee787;
+}
+
+.brand h1 {
+    margin: 0;
+
+    color: #f0f2f3;
+
+    font-size: 21px;
+    font-weight: 600;
+
+    letter-spacing: 4px;
+}
+
+.brand p {
+    margin: 3px 0 0;
+
+    color: #687078;
+
+    font-size: 10px;
+}
+
+
+/* =========================================================
+   HERO
+========================================================= */
+
+.visual-content {
+    position: relative;
+    z-index: 5;
+
+    max-width: 470px;
+
+    margin-top: 135px;
+}
+
+.eyebrow {
+    color: #7ee787;
+
+    font-size: 9px;
+    font-weight: 700;
+
+    letter-spacing: 2.8px;
+}
+
+.visual-content h2 {
+    margin: 18px 0 20px;
+
+    color: #f1f3f4;
+
+    font-size: clamp(42px, 4vw, 64px);
+
+    line-height: 1.02;
+
+    font-weight: 650;
+
+    letter-spacing: -2.8px;
+}
+
+.visual-content h2 span {
+    color: #7ee787;
+}
+
+.visual-content p {
+    max-width: 400px;
+
+    margin: 0;
+
+    color: #7c858d;
+
+    font-size: 14px;
+
+    line-height: 1.75;
+}
+
+
+/* =========================================================
+   TOPOLOGY
+========================================================= */
+
+.topology {
+    position: absolute;
+
+    right: -70px;
+    bottom: 72px;
+
+    width: 560px;
+    height: 390px;
+
+    pointer-events: none;
+
+    transition: opacity 0.4s ease;
+}
+
+
+/* =========================================================
+   NETWORK CONNECTIONS
+========================================================= */
+
+.connection {
+    position: absolute;
+
+    height: 1px;
+
+    transform-origin: left center;
+
+    background:
+            linear-gradient(
+                    90deg,
+                    transparent,
+                    rgba(126, 231, 135, 0.18),
+                    rgba(126, 231, 135, 0.035),
+                    transparent
+            );
+
+    transition:
+            background 0.5s ease,
+            opacity 0.5s ease;
+}
+
+
+/* Existing topology */
+
+.c1 {
+    width: 190px;
+    left: 120px;
+    top: 160px;
+    transform: rotate(-31deg);
+}
+
+.c2 {
+    width: 190px;
+    left: 120px;
+    top: 160px;
+    transform: rotate(31deg);
+}
+
+.c3 {
+    width: 180px;
+    left: 120px;
+    top: 160px;
+    transform: rotate(0deg);
+}
+
+.c4 {
+    width: 150px;
+    left: 260px;
+    top: 160px;
+    transform: rotate(-48deg);
+}
+
+.c5 {
+    width: 170px;
+    left: 260px;
+    top: 160px;
+    transform: rotate(38deg);
+}
+
+.c6 {
+    width: 130px;
+    left: 260px;
+    top: 160px;
+    transform: rotate(180deg);
+}
+
+
+/* =========================================================
+   NETWORK NODES
+========================================================= */
+
+.network-node {
+    position: absolute;
+
+    width: 42px;
+    height: 42px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border: 1px solid rgba(126, 231, 135, 0.25);
+
+    border-radius: 50%;
+
+    background: rgba(15, 18, 21, 0.94);
+
+    box-shadow:
+            0 0 18px rgba(126, 231, 135, 0.025);
+
+    transition:
+            border-color 0.5s ease,
+            background 0.5s ease,
+            opacity 0.5s ease,
+            box-shadow 0.5s ease;
+
+    animation:
+            nodeFloat 4s ease-in-out infinite;
+}
+
+
+/* Node center */
+
+.node-core {
+    width: 6px;
+    height: 6px;
+
+    border-radius: 50%;
+
+    background: #7ee787;
+
+    box-shadow:
+            0 0 9px rgba(126, 231, 135, 0.55);
+
+    transition:
+            background 0.4s ease,
+            box-shadow 0.4s ease;
+}
+
+
+/* Node labels */
+
+.network-node span {
+    position: absolute;
+
+    top: -18px;
+
+    color: #505860;
+
+    font-size: 8px;
+
+    letter-spacing: 1px;
+}
+
+
+/* Different movement timing */
+
+.n1 {
+    left: 95px;
+    top: 75px;
+
+    animation-delay: -1s;
+}
+
+.n2 {
+    left: 90px;
+    top: 240px;
+
+    animation-delay: -2.5s;
+}
+
+.n3 {
+    left: 270px;
+    top: 10px;
+
+    animation-delay: -0.5s;
+}
+
+.n4 {
+    left: 270px;
+    top: 300px;
+
+    animation-delay: -3s;
+}
+
+.n5 {
+    right: 35px;
+    top: 75px;
+
+    animation-delay: -1.7s;
+}
+
+.n6 {
+    right: 20px;
+    bottom: 35px;
+
+    animation-delay: -2s;
+}
+
+
+/* =========================================================
+   NODE MOVEMENT
+========================================================= */
+
+@keyframes nodeFloat {
+
+    0% {
+        transform: translate(0, 0);
+    }
+
+    25% {
+        transform: translate(2px, -3px);
+    }
+
+    50% {
+        transform: translate(-2px, 2px);
+    }
+
+    75% {
+        transform: translate(3px, 1px);
+    }
+
+    100% {
+        transform: translate(0, 0);
+    }
+
+}
+
+
+/* =========================================================
+   CENTRAL MANET NODE
+========================================================= */
+
+.network-core {
+    position: absolute;
+
+    left: 235px;
+    top: 139px;
+
+    width: 70px;
+    height: 70px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border: 1px solid rgba(126, 231, 135, 0.5);
+
+    border-radius: 50%;
+
+    background: #121619;
+
+    color: #7ee787;
+
+    box-shadow:
+            0 0 28px rgba(126, 231, 135, 0.05);
+
+    animation:
+            corePulse 3s ease-in-out infinite;
+}
+
+.network-core svg {
+    position: absolute;
+
+    opacity: 0.15;
+}
+
+.network-core span {
+    position: relative;
+
+    z-index: 2;
+
+    font-size: 20px;
+    font-weight: 700;
+}
+
+
+/* =========================================================
+   CORE RING
+========================================================= */
+
+.core-ring {
+    position: absolute;
+
+    inset: -10px;
+
+    border: 1px dashed rgba(126, 231, 135, 0.16);
+
+    border-radius: 50%;
+
+    animation:
+            ringRotate 12s linear infinite;
+}
+
+@keyframes corePulse {
+
+    0%,
+    100% {
+        box-shadow:
+                0 0 25px rgba(126, 231, 135, 0.04);
+    }
+
+    50% {
+        box-shadow:
+                0 0 35px rgba(126, 231, 135, 0.10);
+    }
+
+}
+
+@keyframes ringRotate {
+
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+
+}
+
+
+/* =========================================================
+   FAULT NODE
+========================================================= */
+
+.fault-node {
+    border-color: rgba(245, 158, 11, 0.55);
+
+    background: rgba(40, 31, 15, 0.8);
+
+    animation:
+            faultPulse 1s ease-in-out infinite;
+}
+
+.fault-node .node-core {
+    background: #f59e0b;
+
+    box-shadow:
+            0 0 12px rgba(245, 158, 11, 0.65);
+}
+
+.fault-node span {
+    color: #a5792c;
+}
+
+@keyframes faultPulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.42;
+    }
+
+}
+
+
+/* =========================================================
+   LIVE NETWORK STATUS
+========================================================= */
+
+.network-live-status {
+    position: absolute;
+
+    left: 60px;
+    bottom: 105px;
+
+    z-index: 8;
+
+    display: flex;
+    align-items: center;
+
+    gap: 11px;
+
+    min-width: 260px;
+
+    padding: 12px 14px;
+
+    border: 1px solid rgba(255, 255, 255, 0.06);
+
+    border-radius: 8px;
+
+    background: rgba(12, 15, 18, 0.78);
+
+    backdrop-filter: blur(8px);
+
+    transition:
+            border-color 0.4s ease,
+            background 0.4s ease;
+}
+
+.live-status-icon {
+    width: 30px;
+    height: 30px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 7px;
+
+    background: rgba(126, 231, 135, 0.06);
+
+    color: #7ee787;
+}
+
+.live-status-text {
+    display: flex;
+    flex-direction: column;
+
+    gap: 3px;
+}
+
+.live-status-text strong {
+    color: #9ca5ad;
+
+    font-size: 9px;
+
+    letter-spacing: 1.3px;
+}
+
+.live-status-text span {
+    color: #59636c;
+
+    font-size: 9px;
+}
+
+
+/* Detecting */
+
+.status-detecting {
+    border-color: rgba(255, 255, 255, 0.10);
+}
+
+.status-detecting .live-status-icon {
+    color: #c8cdd1;
+}
+
+
+/* Fault */
+
+.status-fault {
+    border-color: rgba(245, 158, 11, 0.18);
+}
+
+.status-fault .live-status-icon {
+    color: #f59e0b;
+
+    background: rgba(245, 158, 11, 0.07);
+}
+
+
+/* Repair */
+
+.status-repairing {
+    border-color: rgba(126, 231, 135, 0.18);
+}
+
+.status-repairing .live-status-icon {
+    color: #7ee787;
+
+    background: rgba(126, 231, 135, 0.07);
+
+    animation:
+            spinIcon 1.4s linear infinite;
+}
+
+
+/* Rejoining */
+
+.status-rejoining {
+    border-color: rgba(126, 231, 135, 0.25);
+}
+
+.status-rejoining .live-status-icon {
+    color: #7ee787;
+
+    animation:
+            spinIcon 1.4s linear infinite;
+}
+
+@keyframes spinIcon {
+
+    to {
+        transform: rotate(360deg);
+    }
+
+}
+
+
+/* =========================================================
+   NETWORK FOOTER
+========================================================= */
+
+.visual-footer {
+    position: absolute;
+
+    left: 60px;
+    bottom: 42px;
+
+    z-index: 10;
+
+    display: flex;
+    align-items: center;
+
+    gap: 8px;
+
+    color: #555d65;
+
+    font-size: 9px;
+
+    letter-spacing: 1.4px;
+}
+
+.visual-footer strong {
+    color: #737b83;
+
+    font-weight: 500;
+}
+
+.online-dot {
+    width: 6px;
+    height: 6px;
+
+    border-radius: 50%;
+
+    background: #4ade80;
+
+    box-shadow:
+            0 0 9px rgba(74, 222, 128, 0.55);
+
+    animation:
+            statusPulse 2s ease-in-out infinite;
+}
+
+@keyframes statusPulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.45;
+    }
+
+}
+
+
+/* =========================================================
+   RIGHT AUTH PANEL
+========================================================= */
+
+.auth-section {
+    min-height: 100vh;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background: #0b0d0f;
+}
+
+.auth-container {
+    width: 410px;
+
+    padding: 20px;
+}
+
+
+/* =========================================================
+   AUTH HEADING
+========================================================= */
+
+.auth-heading {
+    margin-bottom: 32px;
+}
+
+.auth-label {
+    color: #7ee787;
+
+    font-size: 9px;
+
+    font-weight: 700;
+
+    letter-spacing: 2px;
+}
+
+.auth-heading h2 {
+    margin: 11px 0 8px;
+
+    color: #f1f3f4;
+
+    font-size: 30px;
+
+    font-weight: 600;
+
+    line-height: 1.15;
+
+    letter-spacing: -0.8px;
+}
+
+.auth-heading p {
+    margin: 0;
+
+    color: #858c94;
+
+    font-size: 13px;
+
+    line-height: 1.6;
+}
+
+
+/* =========================================================
+   ACCESS OPTIONS
+========================================================= */
+
+.access-options {
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 12px;
+}
+
+.access-card {
+    position: relative;
+
+    width: 100%;
+
+    display: flex;
+    align-items: center;
+
+    padding: 20px;
+
+    border: 1px solid #292e34;
+
+    border-radius: 9px;
+
+    background: #15181c;
+
+    color: #f1f3f5;
+
+    text-align: left;
+
+    cursor: pointer;
+
+    transition:
+            border-color 0.2s ease,
+            background 0.2s ease,
+            transform 0.2s ease,
+            box-shadow 0.2s ease;
+}
+
+.access-card:hover {
+    border-color: rgba(126, 231, 135, 0.4);
+
+    background: #181c20;
+
+    transform: translateX(3px);
+
+    box-shadow:
+            0 8px 25px rgba(0, 0, 0, 0.12);
+}
+
+.access-card:focus-visible {
+    outline: none;
+
+    border-color: #7ee787;
+
+    box-shadow:
+            0 0 0 3px rgba(126, 231, 135, 0.08);
+}
+
+
+/* =========================================================
+   ACCESS ICON
+========================================================= */
+
+.access-icon {
+    width: 44px;
+    height: 44px;
+
+    flex-shrink: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    margin-right: 15px;
+
+    border: 1px solid #30363d;
+
+    border-radius: 8px;
+
+    background: #101317;
+
+    color: #7ee787;
+}
+
+
+/* =========================================================
+   ACCESS CARD CONTENT
+========================================================= */
+
+.access-card-content {
+    flex: 1;
+}
+
+.access-card-content h3 {
+    margin: 0 0 5px;
+
+    color: #e9edef;
+
+    font-size: 13px;
+
+    font-weight: 600;
+}
+
+.access-card-content p {
+    max-width: 275px;
+
+    margin: 0;
+
+    color: #6f777f;
+
+    font-size: 11px;
+
+    line-height: 1.55;
+}
+
+
+/* =========================================================
+   ACCESS ARROW
+========================================================= */
+
+.access-arrow {
+    display: flex;
+
+    color: #555e67;
+
+    transition:
+            color 0.2s ease,
+            transform 0.2s ease;
+}
+
+.access-card:hover .access-arrow {
+    color: #7ee787;
+
+    transform: translateX(2px);
+}
+
+
+/* =========================================================
+   SECURITY NOTE
+========================================================= */
+
+.security-note {
+    display: flex;
+
+    align-items: center;
+
+    gap: 10px;
+
+    margin-top: 30px;
+
+    padding-top: 20px;
+
+    border-top: 1px solid #252a2f;
+
+    color: #616971;
+}
+
+.security-note > svg {
+    flex-shrink: 0;
+}
+
+.security-note div {
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 2px;
+}
+
+.security-note strong {
+    color: #7b838b;
+
+    font-size: 10px;
+
+    font-weight: 500;
+}
+
+.security-note span {
+    color: #505860;
+
+    font-size: 9px;
+}
+
+
+/* =========================================================
+   BACK BUTTON
+========================================================= */
+
+.back-button {
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 6px;
+
+    padding: 0;
+
+    margin-bottom: 30px;
+
+    border: 0;
+
+    background: transparent;
+
+    color: #69727a;
+
+    font-size: 11px;
+
+    cursor: pointer;
+
+    transition: color 0.2s ease;
+}
+
+.back-button:hover {
+    color: #7ee787;
+}
+
+
+/* =========================================================
+   FORM FIELD
+========================================================= */
+
+.field {
+    margin-bottom: 19px;
+}
+
+.field label {
+    display: block;
+
+    margin-bottom: 8px;
+
+    color: #a5abb1;
+
+    font-size: 12px;
+
+    font-weight: 500;
+}
+
+
+/* =========================================================
+   INPUT
+========================================================= */
+
+.input-wrapper {
+    position: relative;
+}
+
+.input-icon {
+    position: absolute;
+
+    left: 14px;
+    top: 50%;
+
+    transform: translateY(-50%);
+
+    color: #626a72;
+
+    pointer-events: none;
+
+    transition: color 0.2s ease;
+}
+
+.input-wrapper input {
+    width: 100%;
+    height: 47px;
+
+    padding: 0 15px 0 43px;
+
+    border: 1px solid #292e34;
+
+    border-radius: 7px;
+
+    outline: none;
+
+    background: #16191d;
+
+    color: #edf0f2;
+
+    font-size: 13px;
+
+    transition:
+            border-color 0.2s ease,
+            background 0.2s ease,
+            box-shadow 0.2s ease;
+}
+
+.input-wrapper input::placeholder {
+    color: #606870;
+}
+
+.input-wrapper input:hover {
+    border-color: #383e45;
+}
+
+.input-wrapper input:focus {
+    border-color: rgba(126, 231, 135, 0.48);
+
+    background: #181c20;
+
+    box-shadow:
+            0 0 0 3px rgba(126, 231, 135, 0.045);
+}
+
+.input-wrapper:focus-within .input-icon {
+    color: #7ee787;
+}
+
+
+/* =========================================================
+   REQUIRED ADMIN KEY
+========================================================= */
+
+.required-label {
+    margin-left: 7px;
+
+    color: #7ee787;
+
+    font-size: 9px;
+
+    font-weight: 600;
+
+    text-transform: uppercase;
+
+    letter-spacing: 0.6px;
+}
+
+
+/* =========================================================
+   LOGIN OPTIONS
+========================================================= */
+
+.form-row {
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    margin: 2px 0 24px;
+}
+
+.remember {
+    display: flex;
+    align-items: center;
+
+    gap: 8px;
+
+    color: #7ee787;
+
+    font-size: 11px;
+
+    cursor: pointer;
+}
+
+.remember input {
+    width: 13px;
+    height: 13px;
+    color :#7ee787;
+    margin: 0;
+
+    accent-color: #7ee787;
+}
+
+.forgot {
+    padding: 0;
+
+    border: 0;
+
+    background: transparent;
+
+    color: #7ee787;
+
+    font-size: 11px;
+
+    cursor: pointer;
+}
+
+.forgot:hover {
+    color: #9af3a1;
+}
+
+
+/* =========================================================
+   SUBMIT BUTTON
+========================================================= */
+
+.submit-button {
+    width: 100%;
+    height: 47px;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    gap: 8px;
+
+    border: 0;
+
+    border-radius: 7px;
+
+    background: #7ee787;
+
+    color: #0a0e0b;
+
+    font-size: 13px;
+
+    font-weight: 700;
+
+    cursor: pointer;
+
+    transition:
+            background 0.2s ease,
+            transform 0.2s ease,
+            box-shadow 0.2s ease;
+}
+
+.submit-button:hover {
+    background: #91ee99;
+
+    box-shadow:
+            0 8px 24px rgba(126, 231, 135, 0.10);
+
+    transform: translateY(-1px);
+}
+
+.submit-button:active {
+    transform: translateY(0);
+}
+
+
+/* =========================================================
+   FORM FOOTER
+========================================================= */
+
+.form-footer {
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    gap: 5px;
+
+    margin-top: 25px;
+
+    color: #626a72;
+
+    font-size: 11px;
+}
+
+.form-footer button {
+    padding: 0;
+
+    border: 0;
+
+    background: transparent;
+
+    color: #7ee787;
+
+    font-size: 11px;
+
+    font-weight: 600;
+
+    cursor: pointer;
+}
+
+.form-footer button:hover {
+    text-decoration: underline;
+}
+
+
+/* =========================================================
+   ADMIN WARNING
+========================================================= */
+
+.admin-warning {
+    display: flex;
+
+    align-items: flex-start;
+
+    gap: 10px;
+
+    margin-top: 22px;
+
+    padding: 13px;
+
+    border: 1px solid rgba(126, 231, 135, 0.12);
+
+    border-radius: 7px;
+
+    background: rgba(126, 231, 135, 0.025);
+
+    color: #68736b;
+}
+
+.admin-warning > svg {
+    flex-shrink: 0;
+
+    margin-top: 1px;
+}
+
+.admin-warning div {
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 3px;
+}
+
+.admin-warning strong {
+    color: #7e8982;
+
+    font-size: 10px;
+
+    font-weight: 600;
+}
+
+.admin-warning span {
+    color: #555e58;
+
+    font-size: 9px;
+
+    line-height: 1.5;
+}
+
+
+/* =========================================================
+   MOBILE BRAND
+========================================================= */
+
+.mobile-brand {
+    display: none;
+}
+
+
+/* =========================================================
+   TABLET
+========================================================= */
+
+@media (max-width: 1000px) {
+
+    .auth-page {
+        grid-template-columns: 46% 54%;
+    }
+
+    .auth-visual {
+        padding-left: 40px;
+        padding-right: 40px;
+    }
+
+    .visual-content {
+        margin-top: 110px;
+    }
+
+    .visual-content h2 {
+        font-size: 48px;
+    }
+
+    .topology {
+        right: -160px;
+    }
+
+    .visual-footer,
+    .network-live-status {
+        left: 40px;
+    }
+
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 850px) {
+
+    .auth-page {
+        display: block;
+
+        min-height: 100vh;
+
+        background: #0b0d0f;
+    }
+
+    .auth-visual {
+        display: none;
+    }
+
+    .auth-section {
+        min-height: 100vh;
+
+        padding: 35px 0;
+    }
+
+    .auth-container {
+        width: 420px;
+
+        max-width: calc(100% - 40px);
+
+        padding: 0;
+    }
+
+    .mobile-brand {
+        display: flex;
+
+        align-items: center;
+
+        gap: 10px;
+
+        margin-bottom: 55px;
+
+        color: #f1f3f5;
+
+        font-size: 18px;
+
+        letter-spacing: 2px;
+    }
+
+    .mobile-brand .brand-mark {
+        width: 38px;
+        height: 38px;
+    }
+
+}
+
+
+/* =========================================================
+   SMALL MOBILE
+========================================================= */
+
+@media (max-width: 480px) {
+
+    .auth-section {
+        padding: 28px 0;
+    }
+
+    .auth-container {
+        max-width: calc(100% - 32px);
+    }
+
+    .mobile-brand {
+        margin-bottom: 42px;
+    }
+
+    .auth-heading {
+        margin-bottom: 28px;
+    }
+
+    .auth-heading h2 {
+        font-size: 27px;
+    }
+
+    .auth-heading p {
+        font-size: 12px;
+    }
+
+    .access-card {
+        padding: 16px;
+    }
+
+    .access-icon {
+        width: 40px;
+        height: 40px;
+
+        margin-right: 12px;
+    }
+
+    .access-card-content p {
+        font-size: 10px;
+    }
+
+    .field {
+        margin-bottom: 17px;
+    }
+
+    .form-row {
+        margin-bottom: 22px;
+    }
+
+    .form-footer {
+        flex-direction: column;
+
+        gap: 4px;
+    }
+
+    .security-note {
+        margin-top: 28px;
+    }
+
+}
+
+
+/* =========================================================
+   REDUCED MOTION
+========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+
+    *,
+    *::before,
+    *::after {
+        animation: none !important;
+
+        transition: none !important;
+    }
+
+}

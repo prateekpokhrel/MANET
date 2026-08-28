@@ -1,5 +1,4 @@
 package com.manet.backend.repository;
-
 import com.manet.backend.entity.Alert;
 import com.manet.backend.entity.Simulation;
 import org.springframework.data.jpa.repository.JpaRepository;
