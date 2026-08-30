@@ -1,0 +1,16 @@
+feature,importance
+active,0.39716414
+battery_level,0.2604123
+speed,0.10112393
+x,0.05258148
+latency,0.049344037
+packet_loss,0.0432294
+y,0.042681694
+cpu_usage,0.025213493
+signal_strength,0.019103827
+memory_usage,0.009145764
+timestamp_year,0.0
+timestamp_month,0.0
+timestamp_day,0.0
+timestamp_hour,0.0
+timestamp_minute,0.0

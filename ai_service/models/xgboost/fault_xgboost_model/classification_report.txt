@@ -1,0 +1,15 @@
+                    precision    recall  f1-score   support
+
+CHANNEL_CONGESTION       0.70      0.78      0.74         9
+          HIGH_CPU       0.67      1.00      0.80         4
+      HIGH_LATENCY       0.67      0.89      0.76         9
+  HIGH_PACKET_LOSS       0.71      1.00      0.83        10
+      LINK_FAILURE       0.91      1.00      0.95        10
+       LOW_BATTERY       0.62      1.00      0.77         5
+      NODE_FAILURE       0.44      1.00      0.62         4
+            NORMAL       1.00      0.98      0.99      1020
+RADIO_INTERFERENCE       0.75      1.00      0.86         9
+
+          accuracy                           0.97      1080
+         macro avg       0.72      0.96      0.81      1080
+      weighted avg       0.98      0.97      0.98      1080
