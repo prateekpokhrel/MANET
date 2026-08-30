@@ -1,0 +1,11 @@
+{
+    "0": "CHANNEL_CONGESTION",
+    "1": "HIGH_CPU",
+    "2": "HIGH_LATENCY",
+    "3": "HIGH_PACKET_LOSS",
+    "4": "LINK_FAILURE",
+    "5": "LOW_BATTERY",
+    "6": "NODE_FAILURE",
+    "7": "NORMAL",
+    "8": "RADIO_INTERFERENCE"
+}
