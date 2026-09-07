@@ -1,0 +1,31 @@
+{
+    "validation_accuracy": 0.9740740740740741,
+    "validation_precision": 0.9818858473677097,
+    "validation_recall": 0.9740740740740741,
+    "validation_f1": 0.9763673777347761,
+    "test_accuracy": 0.9740740740740741,
+    "test_precision": 0.9812843318645201,
+    "test_recall": 0.9740740740740741,
+    "test_f1": 0.976310385482312,
+    "number_of_classes": 9,
+    "training_records": 5040,
+    "validation_records": 1080,
+    "test_records": 1080,
+    "features": [
+        "x",
+        "y",
+        "speed",
+        "battery_level",
+        "cpu_usage",
+        "memory_usage",
+        "signal_strength",
+        "packet_loss",
+        "latency",
+        "active",
+        "timestamp_year",
+        "timestamp_month",
+        "timestamp_day",
+        "timestamp_hour",
+        "timestamp_minute"
+    ]
+}

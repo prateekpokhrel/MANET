@@ -1,0 +1,17 @@
+[
+    "x",
+    "y",
+    "speed",
+    "battery_level",
+    "cpu_usage",
+    "memory_usage",
+    "signal_strength",
+    "packet_loss",
+    "latency",
+    "active",
+    "timestamp_year",
+    "timestamp_month",
+    "timestamp_day",
+    "timestamp_hour",
+    "timestamp_minute"
+]
