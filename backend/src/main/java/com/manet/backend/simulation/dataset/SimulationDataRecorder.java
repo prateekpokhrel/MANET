@@ -3,9 +3,11 @@ package com.manet.backend.simulation.dataset;
 import com.manet.backend.entity.SimulationDatasetRecord;
 import com.manet.backend.model.NetworkState;
 import com.manet.backend.model.NodePosition;
+import com.manet.backend.model.SimulatedLink;
 import com.manet.backend.model.SimulatedNode;
 import com.manet.backend.repository.SimulationDatasetRecordRepository;
 import com.manet.backend.simulation.fault.FaultInjector;
+import com.manet.backend.simulation.fault.FaultType;
 import com.manet.backend.simulation.fault.SimulatedFault;
 import org.springframework.stereotype.Component;
 
@@ -26,18 +28,24 @@ public class SimulationDataRecorder {
         this.faultInjector = faultInjector;
     }
 
-    public void initialize(
-            Long simulationId
-    ) {
+    // =========================================================
+    // INITIALIZE
+    // =========================================================
+
+    public void initialize(Long simulationId) {
 
         if (simulationId == null) {
             return;
         }
 
-        repository.deleteBySimulationId(
-                simulationId
-        );
+        // Remove old records for this simulation
+        repository.deleteBySimulationId(simulationId);
     }
+
+
+    // =========================================================
+    // RECORD NODE + LINK DATA
+    // =========================================================
 
     public synchronized void record(
             Long simulationId,
@@ -55,41 +63,556 @@ public class SimulationDataRecorder {
                 state.getCurrentTime();
 
         List<SimulatedFault> activeFaults =
-                faultInjector.getActiveFaults();
+                faultInjector != null
+                        ? faultInjector.getActiveFaults()
+                        : null;
 
-        for (SimulatedNode node :
-                state.getNodes()) {
 
-            NodePosition position =
-                    node.getPosition();
+        // =====================================================
+        // PART 1
+        // NODE DATA
+        //
+        // Used by:
+        // XGBoost
+        // Random Forest
+        // =====================================================
 
-            String faultType =
-                    findFaultType(
-                            node,
-                            activeFaults
-                    );
+        if (state.getNodes() != null) {
 
-            SimulationDatasetRecord record =
-                    SimulationDatasetRecord.builder()
-                            .simulationId(simulationId)
-                            .timestamp(timestamp)
-                            .nodeId(node.getNodeId())
-                            .x(position.getX())
-                            .y(position.getY())
-                            .speed(node.getSpeed())
-                            .batteryLevel(node.getBatteryLevel())
-                            .cpuUsage(node.getCpuUsage())
-                            .memoryUsage(node.getMemoryUsage())
-                            .signalStrength(node.getSignalStrength())
-                            .packetLoss(node.getPacketLoss())
-                            .latency(node.getLatency())
-                            .active(node.isActive())
-                            .faulty(node.isFaulty())
-                            .faultType(faultType)
-                            .build();
+            for (SimulatedNode node :
+                    state.getNodes()) {
 
-            records.add(record);
+                if (node == null) {
+                    continue;
+                }
+
+                if (node.getNodeId() == null) {
+                    continue;
+                }
+
+                NodePosition position =
+                        node.getPosition();
+
+                if (position == null) {
+                    continue;
+                }
+
+                String faultType =
+                        resolveFaultType(
+                                node,
+                                activeFaults
+                        );
+
+
+                SimulationDatasetRecord nodeRecord =
+                        SimulationDatasetRecord.builder()
+
+                                // -------------------------
+                                // COMMON
+                                // -------------------------
+
+                                .simulationId(
+                                        simulationId
+                                )
+
+                                .timestamp(
+                                        timestamp
+                                )
+
+
+                                // -------------------------
+                                // NODE IDENTIFICATION
+                                // -------------------------
+
+                                .nodeId(
+                                        node.getNodeId()
+                                )
+
+
+                                // -------------------------
+                                // POSITION
+                                // -------------------------
+
+                                .x(
+                                        sanitize(
+                                                position.getX()
+                                        )
+                                )
+
+                                .y(
+                                        sanitize(
+                                                position.getY()
+                                        )
+
+
+                                        // -------------------------
+                                        // NODE FEATURES
+                                        // -------------------------
+
+                                )
+
+                                .speed(
+                                        sanitize(
+                                                node.getSpeed()
+                                        )
+                                )
+
+                                .batteryLevel(
+                                        sanitize(
+                                                node.getBatteryLevel()
+                                        )
+                                )
+
+                                .cpuUsage(
+                                        sanitize(
+                                                node.getCpuUsage()
+                                        )
+                                )
+
+                                .memoryUsage(
+                                        sanitize(
+                                                node.getMemoryUsage()
+                                        )
+                                )
+
+                                .signalStrength(
+                                        sanitize(
+                                                node.getSignalStrength()
+                                        )
+                                )
+
+                                .packetLoss(
+                                        sanitize(
+                                                node.getPacketLoss()
+                                        )
+                                )
+
+                                .latency(
+                                        sanitize(
+                                                node.getLatency()
+                                        )
+                                )
+
+
+                                // -------------------------
+                                // NODE STATE
+                                // -------------------------
+
+                                .active(
+                                        node.isActive()
+                                )
+
+                                .faulty(
+                                        node.isFaulty()
+                                )
+
+                                .faultType(
+                                        faultType
+                                )
+
+
+                                // -------------------------
+                                // LINK FIELDS
+                                // Not applicable
+                                // -------------------------
+
+                                .sourceNodeId(
+                                        null
+                                )
+
+                                .destinationNodeId(
+                                        null
+                                )
+
+                                .nodeDistance(
+                                        0.0
+                                )
+
+                                .throughput(
+                                        0.0
+                                )
+
+                                .linkQuality(
+                                        0.0
+                                )
+
+                                .linkActive(
+                                        false
+                                )
+
+
+                                // -------------------------
+                                // RECORD TYPE
+                                // -------------------------
+
+                                .recordType(
+                                        "NODE"
+                                )
+
+                                .build();
+
+
+                records.add(nodeRecord);
+            }
         }
+
+
+        // =====================================================
+        // PART 2
+        // LINK DATA
+        //
+        // Used by:
+        // LSTM
+        // =====================================================
+
+        if (state.getLinks() != null) {
+
+            for (SimulatedLink link :
+                    state.getLinks()) {
+
+                if (link == null) {
+                    continue;
+                }
+
+                Long sourceNodeId =
+                        link.getSourceNodeId();
+
+                Long destinationNodeId =
+                        link.getDestinationNodeId();
+
+
+                // Both endpoints are required
+                if (sourceNodeId == null
+                        || destinationNodeId == null) {
+
+                    continue;
+                }
+
+
+                // ---------------------------------------------
+                // Find source node
+                // ---------------------------------------------
+
+                SimulatedNode sourceNode =
+                        findNode(
+                                state,
+                                sourceNodeId
+                        );
+
+
+                // ---------------------------------------------
+                // Find destination node
+                // ---------------------------------------------
+
+                SimulatedNode destinationNode =
+                        findNode(
+                                state,
+                                destinationNodeId
+                        );
+
+
+                // ---------------------------------------------
+                // Mobility speed
+                //
+                // Average speed of the two nodes
+                // ---------------------------------------------
+
+                double mobilitySpeed =
+                        calculateMobilitySpeed(
+                                sourceNode,
+                                destinationNode
+                        );
+
+
+                // ---------------------------------------------
+                // Link metrics
+                // ---------------------------------------------
+
+                double signalStrength =
+                        sanitize(
+                                link.getSignalStrength()
+                        );
+
+                double packetLoss =
+                        sanitize(
+                                link.getPacketLoss()
+                        );
+
+                double latency =
+                        sanitize(
+                                link.getLatency()
+                        );
+
+                double linkQuality =
+                        sanitize(
+                                link.getQuality()
+                        );
+
+                double nodeDistance =
+                        sanitize(
+                                link.getDistance()
+                        );
+
+
+                // ---------------------------------------------
+                // Keep normalized values in valid ranges
+                // ---------------------------------------------
+
+                linkQuality =
+                        clamp(
+                                linkQuality,
+                                0.0,
+                                1.0
+                        );
+
+                packetLoss =
+                        clamp(
+                                packetLoss,
+                                0.0,
+                                1.0
+                        );
+
+
+                // ---------------------------------------------
+                // Throughput
+                // ---------------------------------------------
+
+                double throughput =
+                        calculateThroughput(
+                                linkQuality,
+                                packetLoss,
+                                link.isActive()
+                        );
+
+
+                // ---------------------------------------------
+                // Source position
+                // ---------------------------------------------
+
+                double sourceX = 0.0;
+                double sourceY = 0.0;
+
+                if (sourceNode != null
+                        && sourceNode.getPosition() != null) {
+
+                    sourceX =
+                            sanitize(
+                                    sourceNode
+                                            .getPosition()
+                                            .getX()
+                            );
+
+                    sourceY =
+                            sanitize(
+                                    sourceNode
+                                            .getPosition()
+                                            .getY()
+                            );
+                }
+
+
+                // =================================================
+                // CREATE LINK RECORD
+                // =================================================
+
+                /*
+                 * nodeId cannot be null because the current
+                 * database schema requires it.
+                 *
+                 * Therefore sourceNodeId is stored in nodeId
+                 * as the primary identifier for this link record.
+                 *
+                 * The actual link is still identified by:
+                 *
+                 * sourceNodeId
+                 * destinationNodeId
+                 */
+
+                SimulationDatasetRecord linkRecord =
+                        SimulationDatasetRecord.builder()
+
+                                // -------------------------
+                                // COMMON
+                                // -------------------------
+
+                                .simulationId(
+                                        simulationId
+                                )
+
+                                .timestamp(
+                                        timestamp
+                                )
+
+
+                                // -------------------------
+                                // REQUIRED NODE ID
+                                // -------------------------
+
+                                .nodeId(
+                                        sourceNodeId
+                                )
+
+
+                                // -------------------------
+                                // POSITION
+                                // -------------------------
+
+                                .x(
+                                        sourceX
+                                )
+
+                                .y(
+                                        sourceY
+                                )
+
+
+                                // -------------------------
+                                // MOBILITY
+                                // -------------------------
+
+                                .speed(
+                                        mobilitySpeed
+                                )
+
+
+                                // -------------------------
+                                // NODE-ONLY FIELDS
+                                // -------------------------
+
+                                .batteryLevel(
+                                        0.0
+                                )
+
+                                .cpuUsage(
+                                        0.0
+                                )
+
+                                .memoryUsage(
+                                        0.0
+                                )
+
+
+                                // -------------------------
+                                // LSTM INPUT 1
+                                // RSSI
+                                // -------------------------
+
+                                .signalStrength(
+                                        signalStrength
+                                )
+
+
+                                // -------------------------
+                                // LSTM INPUT 2
+                                // Packet Loss
+                                // -------------------------
+
+                                .packetLoss(
+                                        packetLoss
+                                )
+
+
+                                // -------------------------
+                                // LSTM INPUT 3
+                                // Latency
+                                // -------------------------
+
+                                .latency(
+                                        latency
+                                )
+
+
+                                // -------------------------
+                                // LSTM INPUT 4
+                                // Throughput
+                                // -------------------------
+
+                                .throughput(
+                                        throughput
+                                )
+
+
+                                // -------------------------
+                                // LSTM INPUT 5
+                                // Link Quality
+                                // -------------------------
+
+                                .linkQuality(
+                                        linkQuality
+                                )
+
+
+                                // -------------------------
+                                // LSTM INPUT 6
+                                // Node Distance
+                                // -------------------------
+
+                                .nodeDistance(
+                                        nodeDistance
+                                )
+
+
+                                // -------------------------
+                                // LINK STATE
+                                // -------------------------
+
+                                .linkActive(
+                                        link.isActive()
+                                )
+
+
+                                // -------------------------
+                                // LINK IDENTIFICATION
+                                // -------------------------
+
+                                .sourceNodeId(
+                                        sourceNodeId
+                                )
+
+                                .destinationNodeId(
+                                        destinationNodeId
+                                )
+
+
+                                // -------------------------
+                                // FAULT FIELDS
+                                //
+                                // These are not node-fault
+                                // classification records.
+                                // -------------------------
+
+                                .active(
+                                        false
+                                )
+
+                                .faulty(
+                                        false
+                                )
+
+                                .faultType(
+                                        "NORMAL"
+                                )
+
+
+                                // -------------------------
+                                // RECORD TYPE
+                                // -------------------------
+
+                                .recordType(
+                                        "LINK"
+                                )
+
+                                .build();
+
+
+                records.add(linkRecord);
+            }
+        }
+
+
+        // =====================================================
+        // SAVE ALL RECORDS
+        // =====================================================
 
         if (!records.isEmpty()) {
 
@@ -99,49 +622,250 @@ public class SimulationDataRecorder {
         }
     }
 
-    private String findFaultType(
-            SimulatedNode node,
-            List<SimulatedFault> faults
+
+    // =========================================================
+    // FIND NODE
+    // =========================================================
+
+    private SimulatedNode findNode(
+            NetworkState state,
+            Long nodeId
     ) {
 
-        if (faults == null || faults.isEmpty()) {
-            return "NORMAL";
+        if (state == null
+                || state.getNodes() == null
+                || nodeId == null) {
+
+            return null;
         }
 
-        for (SimulatedFault fault : faults) {
+        for (SimulatedNode node :
+                state.getNodes()) {
 
-            if (!fault.isActive()) {
+            if (node == null) {
                 continue;
             }
 
-            if (fault.getNodeId() != null
-                    && fault.getNodeId()
-                    .equals(node.getNodeId())) {
+            if (node.getNodeId() != null
+                    && node.getNodeId().equals(nodeId)) {
 
-                return fault.getFaultType().name();
-            }
-
-            if (fault.getSourceNodeId() != null
-                    && fault.getSourceNodeId()
-                    .equals(node.getNodeId())) {
-
-                return fault.getFaultType().name();
-            }
-
-            if (fault.getDestinationNodeId() != null
-                    && fault.getDestinationNodeId()
-                    .equals(node.getNodeId())) {
-
-                return fault.getFaultType().name();
+                return node;
             }
         }
+
+        return null;
+    }
+
+
+    // =========================================================
+    // CALCULATE MOBILITY SPEED
+    // =========================================================
+
+    private double calculateMobilitySpeed(
+            SimulatedNode sourceNode,
+            SimulatedNode destinationNode
+    ) {
+
+        if (sourceNode != null
+                && destinationNode != null) {
+
+            return sanitize(
+                    (
+                            sourceNode.getSpeed()
+                                    + destinationNode.getSpeed()
+                    ) / 2.0
+            );
+        }
+
+        if (sourceNode != null) {
+
+            return sanitize(
+                    sourceNode.getSpeed()
+            );
+        }
+
+        if (destinationNode != null) {
+
+            return sanitize(
+                    destinationNode.getSpeed()
+            );
+        }
+
+        return 0.0;
+    }
+
+
+    // =========================================================
+    // CALCULATE THROUGHPUT
+    // =========================================================
+
+    private double calculateThroughput(
+            double linkQuality,
+            double packetLoss,
+            boolean linkActive
+    ) {
+
+        if (!linkActive) {
+            return 0.0;
+        }
+
+        /*
+         * Simulation throughput.
+         *
+         * This is not physical network throughput.
+         *
+         * It provides a consistent throughput feature for
+         * the LSTM dataset.
+         */
+
+        double baseCapacity = 100.0;
+
+        double throughput =
+                baseCapacity
+                        * linkQuality
+                        * (1.0 - packetLoss);
+
+        return sanitize(
+                Math.max(
+                        0.0,
+                        throughput
+                )
+        );
+    }
+
+
+    // =========================================================
+    // CLAMP
+    // =========================================================
+
+    private double clamp(
+            double value,
+            double minimum,
+            double maximum
+    ) {
+
+        return Math.max(
+                minimum,
+                Math.min(
+                        maximum,
+                        value
+                )
+        );
+    }
+
+
+    // =========================================================
+    // SANITIZE
+    // =========================================================
+
+    private double sanitize(
+            double value
+    ) {
+
+        if (Double.isNaN(value)
+                || Double.isInfinite(value)) {
+
+            return 0.0;
+        }
+
+        return value;
+    }
+
+
+    // =========================================================
+    // RESOLVE NODE FAULT TYPE
+    // =========================================================
+
+    private String resolveFaultType(
+            SimulatedNode node,
+            List<SimulatedFault> activeFaults
+    ) {
+
+        if (node == null) {
+            return "NORMAL";
+        }
+
+
+        // -----------------------------------------------------
+        // 1. Node's own fault
+        // -----------------------------------------------------
+
+        FaultType nodeFaultType =
+                node.getFaultType();
+
+        if (nodeFaultType != null) {
+
+            return nodeFaultType.name();
+        }
+
+
+        // -----------------------------------------------------
+        // 2. Active fault records
+        // -----------------------------------------------------
+
+        if (activeFaults != null) {
+
+            for (SimulatedFault fault :
+                    activeFaults) {
+
+                if (fault == null
+                        || !fault.isActive()) {
+
+                    continue;
+                }
+
+                FaultType faultType =
+                        fault.getFaultType();
+
+                if (faultType == null) {
+                    continue;
+                }
+
+
+                // Direct node fault
+                if (fault.getNodeId() != null
+                        && fault.getNodeId()
+                        .equals(node.getNodeId())) {
+
+                    return faultType.name();
+                }
+
+
+                // Source node of affected link
+                if (fault.getSourceNodeId() != null
+                        && fault.getSourceNodeId()
+                        .equals(node.getNodeId())) {
+
+                    return faultType.name();
+                }
+
+
+                // Destination node of affected link
+                if (fault.getDestinationNodeId() != null
+                        && fault.getDestinationNodeId()
+                        .equals(node.getNodeId())) {
+
+                    return faultType.name();
+                }
+            }
+        }
+
 
         return "NORMAL";
     }
 
+
+    // =========================================================
+    // GET NODE RECORDS
+    // =========================================================
+
     public List<NodeDatasetRecord> getNodeRecords(
             Long simulationId
     ) {
+
+        if (simulationId == null) {
+            return new ArrayList<>();
+        }
 
         List<SimulationDatasetRecord> databaseRecords =
                 repository
@@ -152,8 +876,24 @@ public class SimulationDataRecorder {
         List<NodeDatasetRecord> records =
                 new ArrayList<>();
 
+
         for (SimulationDatasetRecord databaseRecord :
                 databaseRecords) {
+
+            /*
+             * Only NODE records should be returned here.
+             *
+             * This protects XGBoost and Random Forest
+             * from accidentally receiving LINK records.
+             */
+
+            if (!"NODE".equals(
+                    databaseRecord.getRecordType()
+            )) {
+
+                continue;
+            }
+
 
             records.add(
                     new NodeDatasetRecord(
@@ -174,18 +914,33 @@ public class SimulationDataRecorder {
             );
         }
 
+
         return records;
     }
+
+
+    // =========================================================
+    // GET RECORD COUNT
+    // =========================================================
 
     public int getRecordCount(
             Long simulationId
     ) {
+
+        if (simulationId == null) {
+            return 0;
+        }
 
         return (int)
                 repository.countBySimulationId(
                         simulationId
                 );
     }
+
+
+    // =========================================================
+    // CLEAR ONE SIMULATION
+    // =========================================================
 
     public void clear(
             Long simulationId
@@ -199,6 +954,11 @@ public class SimulationDataRecorder {
                 simulationId
         );
     }
+
+
+    // =========================================================
+    // CLEAR EVERYTHING
+    // =========================================================
 
     public void clearAll() {
 
