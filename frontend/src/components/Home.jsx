@@ -2,92 +2,98 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Activity,
-  Cpu,
   AlertTriangle,
-  CheckCircle2,
   BrainCircuit,
-  Network,
-  ShieldCheck,
-  RefreshCw,
+  CheckCircle2,
+  Cpu,
   LogOut,
+  Network,
   Radio,
+  RefreshCw,
+  ShieldCheck,
+  Zap,
 } from "lucide-react";
+
 import Sidebar from "./Sidebar";
 import "./Home.css";
 
-const stats = [
+/*
+ * ============================================================
+ * DASHBOARD DEMO DATA
+ * Replace these values with Spring Boot API responses later.
+ * ============================================================
+ */
+
+const networkStats = [
   {
     label: "Network Health",
     value: "92%",
     status: "Healthy",
-    type: "health",
     icon: ShieldCheck,
+    type: "health",
   },
   {
     label: "Active Nodes",
-    value: "8",
+    value: "13",
     status: "Online",
-    type: "active",
     icon: Network,
+    type: "active",
   },
   {
     label: "Failed Nodes",
     value: "2",
     status: "Attention",
-    type: "failed",
     icon: AlertTriangle,
+    type: "failed",
   },
   {
-    label: "Healthy Nodes",
-    value: "8",
-    status: "Stable",
-    type: "healthy",
-    icon: CheckCircle2,
+    label: "Active Links",
+    value: "24",
+    status: "Connected",
+    icon: Activity,
+    type: "links",
   },
 ];
 
 const recentEvents = [
   {
     node: "N05",
-    event: "Failure detected",
-    action: "AI assigned",
+    event: "Low battery risk detected",
+    model: "Random Forest",
+    status: "High Risk",
     time: "2 min ago",
-    type: "ai",
+    type: "warning",
   },
   {
     node: "N07",
-    event: "Failure detected",
-    action: "Human assigned",
+    event: "Link failure classified",
+    model: "XGBoost",
+    status: "Detected",
     time: "4 min ago",
-    type: "human",
+    type: "danger",
   },
   {
     node: "N05",
-    event: "AI recovery initiated",
-    action: "In progress",
+    event: "Recovery action initiated",
+    model: "AI Recovery",
+    status: "In Progress",
     time: "5 min ago",
     type: "ai",
   },
   {
-    node: "N07",
-    event: "Operator recovery initiated",
-    action: "In progress",
-    time: "6 min ago",
-    type: "human",
-  },
-  {
     node: "N03",
-    event: "Successfully rejoined network",
-    action: "Recovered",
+    event: "Node successfully rejoined",
+    model: "Self-Healing",
+    status: "Recovered",
     time: "8 min ago",
     type: "success",
   },
 ];
 
-function StatCard({ label, value, status, type, icon: Icon }) {
+function StatCard({ label, value, status, icon: Icon, type }) {
   return (
     <div className={`home-stat-card ${type}`}>
-      <div className="home-stat-top">
+      <div className="home-stat-header">
         <span>{label}</span>
 
         <div className="home-stat-icon">
@@ -97,9 +103,9 @@ function StatCard({ label, value, status, type, icon: Icon }) {
 
       <div className="home-stat-value">{value}</div>
 
-      <div className="home-stat-bottom">
+      <div className="home-stat-status">
         <span className="home-status-dot" />
-        <span className="home-stat-status">{status}</span>
+        {status}
       </div>
     </div>
   );
@@ -117,6 +123,10 @@ function Home() {
       <Sidebar />
 
       <main className="home-dashboard">
+        {/* ====================================================
+            HEADER
+        ==================================================== */}
+
         <header className="home-header">
           <div>
             <p className="home-eyebrow">NETWORK OPERATIONS CENTER</p>
@@ -124,16 +134,17 @@ function Home() {
             <h1>MANET Dashboard</h1>
 
             <p className="home-subtitle">
-              Monitor network health, failure prediction, and recovery activity
-              in real time.
+              Monitor network health, AI predictions, faults and
+              self-healing activity.
             </p>
           </div>
 
           <div className="home-header-actions">
-            <div className="home-simulation">
-              <Radio size={18} />
+            <div className="home-simulation-status">
+              <span className="live-dot" />
+
               <div>
-                <span className="home-simulation-label">Simulation</span>
+                <span>Simulation</span>
                 <strong>RUNNING</strong>
               </div>
             </div>
@@ -149,247 +160,381 @@ function Home() {
           </div>
         </header>
 
+        {/* ====================================================
+            NETWORK STATISTICS
+        ==================================================== */}
+
         <section className="home-stats">
-          {stats.map((stat) => (
+          {networkStats.map((stat) => (
             <StatCard key={stat.label} {...stat} />
           ))}
         </section>
 
-        <section className="home-panel home-overview">
+        {/* ====================================================
+            NETWORK OVERVIEW
+        ==================================================== */}
+
+        <section className="home-panel home-overview-panel">
           <div className="home-panel-heading">
             <div>
-              <h2>Failure & Recovery Overview</h2>
-              <p>Current network incidents and recovery assignments.</p>
+              <h2>Network Overview</h2>
+              <p>Current state of the virtual MANET.</p>
             </div>
 
-            <span className="home-active-badge">
-              <AlertTriangle size={15} />
-              2 Active Failures
+            <span className="home-live-badge">
+              <Radio size={14} />
+              LIVE
             </span>
           </div>
 
           <div className="home-overview-grid">
             <div className="home-overview-item">
-              <span>Active Failures</span>
-              <strong>2</strong>
+              <span>Total Nodes</span>
+              <strong>15</strong>
+              <small>13 active · 2 failed</small>
             </div>
 
-            <div className="home-overview-item ai">
-              <span>AI Assigned</span>
-              <strong>1</strong>
+            <div className="home-overview-item">
+              <span>Connectivity</span>
+              <strong>94%</strong>
+              <small>Network connectivity</small>
             </div>
 
-            <div className="home-overview-item human">
-              <span>Human Assigned</span>
-              <strong>1</strong>
+            <div className="home-overview-item">
+              <span>Packet Delivery</span>
+              <strong>96%</strong>
+              <small>Successful delivery</small>
             </div>
 
-            <div className="home-overview-item recovering">
-              <span>Recovering</span>
-              <strong>2</strong>
+            <div className="home-overview-item">
+              <span>Average Latency</span>
+              <strong>42 ms</strong>
+              <small>Network response</small>
             </div>
 
-            <div className="home-overview-item recovered">
-              <span>Recovered</span>
-              <strong>8</strong>
+            <div className="home-overview-item">
+              <span>Average Battery</span>
+              <strong>81%</strong>
+              <small>Node battery level</small>
             </div>
           </div>
         </section>
 
-        <section className="home-main-grid">
+        {/* ====================================================
+            AI PREDICTION + FAULT CLASSIFICATION
+        ==================================================== */}
+
+        <section className="home-content-grid">
+          {/* AI PREDICTION */}
+
           <div className="home-panel">
             <div className="home-panel-heading">
               <div>
                 <h2>AI Failure Prediction</h2>
-                <p>Highest-risk node identified by the prediction model.</p>
+                <p>
+                  Highest-risk node identified by the trained model.
+                </p>
               </div>
 
-              <span className="home-risk-badge">
-                <BrainCircuit size={15} />
-                HIGH RISK
-              </span>
+              <div className="home-ai-icon">
+                <BrainCircuit size={20} />
+              </div>
             </div>
 
-            <div className="home-prediction-node">
-              <div className="home-node-icon">
-                <Cpu size={25} />
+            <div className="prediction-main">
+              <div className="prediction-node">
+                <div className="prediction-node-icon">
+                  <Cpu size={24} />
+                </div>
+
+                <div>
+                  <span>Highest Risk Node</span>
+                  <strong>N05</strong>
+                </div>
               </div>
 
-              <div className="home-node-info">
-                <span>Highest Risk Node</span>
-                <strong>N05</strong>
-              </div>
-
-              <div className="home-probability">
+              <div className="prediction-risk">
                 <span>Failure Probability</span>
                 <strong>87%</strong>
               </div>
             </div>
 
-            <div className="home-prediction-details">
+            <div className="prediction-progress">
+              <div className="prediction-progress-header">
+                <span>Risk Level</span>
+                <strong>HIGH</strong>
+              </div>
+
+              <div className="progress-track">
+                <div
+                  className="progress-value high"
+                  style={{ width: "87%" }}
+                />
+              </div>
+            </div>
+
+            <div className="prediction-details">
               <div>
-                <span>Predicted Failure</span>
+                <span>Predicted Fault</span>
                 <strong>LOW_BATTERY</strong>
               </div>
 
               <div>
-                <span>Risk Level</span>
-                <strong className="risk-text">HIGH</strong>
+                <span>Model</span>
+                <strong>Random Forest</strong>
               </div>
-            </div>
-
-            <div className="home-progress">
-              <div className="home-progress-track">
-                <div
-                  className="home-progress-value"
-                  style={{ width: "87%" }}
-                />
-              </div>
-
-              <span>87%</span>
             </div>
           </div>
+
+          {/* XGBOOST CLASSIFICATION */}
 
           <div className="home-panel">
             <div className="home-panel-heading">
               <div>
-                <h2>Failure Classification</h2>
-                <p>Latest detected failure and assigned recovery path.</p>
+                <h2>Fault Classification</h2>
+                <p>Latest fault classified by the AI model.</p>
               </div>
 
-              <span className="home-human-badge">
-                <Activity size={15} />
-                HUMAN
-              </span>
+              <div className="home-xgb-icon">
+                <Zap size={20} />
+              </div>
             </div>
 
-            <div className="home-classification">
-              <div className="home-classification-node">
-                <span>Latest Failure</span>
-                <strong>N07</strong>
-              </div>
+            <div className="classification-node">
+              <span>Latest Affected Node</span>
+              <strong>N07</strong>
+            </div>
 
-              <div className="home-classification-row">
-                <span>Failure Type</span>
+            <div className="classification-list">
+              <div className="classification-row">
+                <span>Fault Type</span>
                 <strong>LINK_FAILURE</strong>
               </div>
 
-              <div className="home-classification-row">
-                <span>Assigned To</span>
-                <strong className="human-text">HUMAN</strong>
+              <div className="classification-row">
+                <span>Model</span>
+                <strong>XGBoost</strong>
               </div>
 
-              <div className="home-classification-row">
+              <div className="classification-row">
+                <span>Confidence</span>
+                <strong className="success-text">94%</strong>
+              </div>
+
+              <div className="classification-row">
                 <span>Status</span>
-                <strong className="recovering-text">RECOVERING</strong>
+                <strong className="warning-text">RECOVERING</strong>
               </div>
             </div>
           </div>
         </section>
 
-        <section className="home-main-grid">
-          <div className="home-panel">
-            <div className="home-panel-heading">
-              <div>
-                <h2>Network Status</h2>
-                <p>Current network-level performance.</p>
-              </div>
+        {/* ====================================================
+            FAULT & RECOVERY
+        ==================================================== */}
 
-              <Activity size={21} />
+        <section className="home-panel">
+          <div className="home-panel-heading">
+            <div>
+              <h2>Fault & Recovery</h2>
+              <p>Current network incidents and self-healing activity.</p>
             </div>
 
-            <div className="home-metrics-grid">
-              <div className="home-metric">
-                <span>Connectivity</span>
-                <strong>94%</strong>
-              </div>
-
-              <div className="home-metric">
-                <span>Packet Delivery</span>
-                <strong>96%</strong>
-              </div>
-
-              <div className="home-metric">
-                <span>Avg. Latency</span>
-                <strong>42 ms</strong>
-              </div>
-
-              <div className="home-metric">
-                <span>Simulation</span>
-                <strong className="running-text">RUNNING</strong>
-              </div>
-            </div>
+            <RefreshCw size={20} />
           </div>
 
-          <div className="home-panel">
-            <div className="home-panel-heading">
-              <div>
-                <h2>Recovery Status</h2>
-                <p>Current AI and human recovery activity.</p>
+          <div className="recovery-grid">
+            <div className="recovery-card danger">
+              <div className="recovery-card-top">
+                <AlertTriangle size={18} />
+                <span>Active Faults</span>
               </div>
 
-              <RefreshCw size={21} />
+              <strong>2</strong>
+
+              <small>Nodes affected</small>
             </div>
 
-            <div className="home-recovery-grid">
-              <div className="home-recovery-card ai">
+            <div className="recovery-card ai">
+              <div className="recovery-card-top">
+                <BrainCircuit size={18} />
                 <span>AI Recovery</span>
-                <strong>1</strong>
-                <small>In Progress</small>
               </div>
 
-              <div className="home-recovery-card human">
-                <span>Human Recovery</span>
-                <strong>1</strong>
-                <small>In Progress</small>
+              <strong>1</strong>
+
+              <small>In progress</small>
+            </div>
+
+            <div className="recovery-card">
+              <div className="recovery-card-top">
+                <RefreshCw size={18} />
+                <span>Recovering</span>
               </div>
 
-              <div className="home-recovery-card">
-                <span>Total Recovering</span>
-                <strong>2</strong>
-                <small>Active</small>
+              <strong>2</strong>
+
+              <small>Active recovery actions</small>
+            </div>
+
+            <div className="recovery-card success">
+              <div className="recovery-card-top">
+                <CheckCircle2 size={18} />
+                <span>Recovered</span>
               </div>
 
-              <div className="home-recovery-card recovered">
-                <span>Last Recovered</span>
-                <strong>N03</strong>
-                <small>Successfully Rejoined</small>
-              </div>
+              <strong>8</strong>
+
+              <small>Successful recoveries</small>
             </div>
           </div>
         </section>
+
+        {/* ====================================================
+            AI MODELS
+        ==================================================== */}
+
+        <section className="home-panel">
+          <div className="home-panel-heading">
+            <div>
+              <h2>AI Models</h2>
+              <p>Current AI model readiness for NeuroHeal.</p>
+            </div>
+
+            <BrainCircuit size={21} />
+          </div>
+
+          <div className="model-grid">
+            <div className="model-card ready">
+              <div className="model-card-header">
+                <div className="model-icon">
+                  <BrainCircuit size={19} />
+                </div>
+
+                <span>READY</span>
+              </div>
+
+              <h3>Random Forest</h3>
+
+              <p>
+                Node failure prediction and risk assessment.
+              </p>
+            </div>
+
+            <div className="model-card ready">
+              <div className="model-card-header">
+                <div className="model-icon">
+                  <Zap size={19} />
+                </div>
+
+                <span>READY</span>
+              </div>
+
+              <h3>XGBoost</h3>
+
+              <p>
+                Fault classification and failure identification.
+              </p>
+            </div>
+
+            <div className="model-card pipeline">
+              <div className="model-card-header">
+                <div className="model-icon">
+                  <Activity size={19} />
+                </div>
+
+                <span>PIPELINE</span>
+              </div>
+
+              <h3>LSTM</h3>
+
+              <p>
+                Future link-quality time-series prediction.
+              </p>
+            </div>
+
+            <div className="model-card pipeline">
+              <div className="model-card-header">
+                <div className="model-icon">
+                  <ShieldCheck size={19} />
+                </div>
+
+                <span>PIPELINE</span>
+              </div>
+
+              <h3>Isolation Forest</h3>
+
+              <p>
+                Future network anomaly detection.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* ====================================================
+            RECENT EVENTS
+        ==================================================== */}
 
         <section className="home-panel home-events">
           <div className="home-panel-heading">
             <div>
               <h2>Recent Events</h2>
-              <p>Latest important network and recovery events.</p>
+              <p>Latest important network events.</p>
             </div>
 
-            <button className="home-view-all" type="button">
-              View All Events
+            <button
+              className="home-text-button"
+              type="button"
+              onClick={() => navigate("/simulation")}
+            >
+              Open Simulation
             </button>
           </div>
 
-          <div className="home-event-list">
+          <div className="event-list">
             {recentEvents.map((event, index) => (
-              <div className="home-event" key={`${event.node}-${index}`}>
-                <span className={`home-event-indicator ${event.type}`} />
-
-                <div className="home-event-content">
-                  <strong>{event.node}</strong>
-                  <span>{event.event}</span>
+              <div className="event-row" key={`${event.node}-${index}`}>
+                <div className={`event-icon ${event.type}`}>
+                  {event.type === "success" ? (
+                    <CheckCircle2 size={17} />
+                  ) : event.type === "ai" ? (
+                    <BrainCircuit size={17} />
+                  ) : (
+                    <AlertTriangle size={17} />
+                  )}
                 </div>
 
-                <span className={`home-event-action ${event.type}`}>
-                  {event.action}
-                </span>
+                <div className="event-main">
+                  <div>
+                    <strong>{event.node}</strong>
+                    <span>{event.event}</span>
+                  </div>
+
+                  <small>{event.model}</small>
+                </div>
+
+                <div className={`event-status ${event.type}`}>
+                  {event.status}
+                </div>
 
                 <time>{event.time}</time>
               </div>
             ))}
           </div>
         </section>
+
+        {/* ====================================================
+            FOOTER
+        ==================================================== */}
+
+        <footer className="home-footer">
+          <span>NeuroHeal · AI-Powered Predictive Self-Healing MANET</span>
+
+          <span className="footer-status">
+            <span className="home-status-dot" />
+            System Operational
+          </span>
+        </footer>
       </main>
     </div>
   );

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+
 import {
   ArrowLeft,
   ArrowRight,
@@ -40,6 +41,10 @@ export default function Login() {
   const [networkState, setNetworkState] = useState("stable");
   const [faultNode, setFaultNode] = useState("03");
 
+  // --------------------------------------------------
+  // Simulated MANET network animation
+  // --------------------------------------------------
+
   useEffect(() => {
     let timer;
 
@@ -48,9 +53,7 @@ export default function Login() {
 
       timer = setTimeout(() => {
         const selectedNode =
-          initialNodes[
-            Math.floor(Math.random() * initialNodes.length)
-          ].id;
+          initialNodes[Math.floor(Math.random() * initialNodes.length)].id;
 
         setFaultNode(selectedNode);
         setNetworkState("detecting");
@@ -82,15 +85,25 @@ export default function Login() {
     };
   }, []);
 
+  // --------------------------------------------------
+  // Form handling
+  // --------------------------------------------------
+
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    const { name, value } = e.target;
+
+    setFormData((previous) => ({
+      ...previous,
+      [name]: value,
+    }));
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    // ----------------------------------------------
+    // New Node Registration
+    // ----------------------------------------------
 
     if (mode === "registry") {
       if (formData.password !== formData.confirmPassword) {
@@ -111,17 +124,29 @@ export default function Login() {
       });
 
       alert("Node registered successfully!");
+
+      // Updated application entry point
       navigate("/home");
+
       return;
     }
+
+    // ----------------------------------------------
+    // Admin Login / Node Rejoin
+    // ----------------------------------------------
 
     console.log("Admin / Rejoin:", {
       nodeId: formData.nodeId,
       password: formData.password,
     });
 
+    // Updated application entry point
     navigate("/home");
   };
+
+  // --------------------------------------------------
+  // Reset authentication screen
+  // --------------------------------------------------
 
   const resetForm = () => {
     setFormData({
@@ -137,7 +162,14 @@ export default function Login() {
 
   return (
     <div className="auth-page">
+
+      {/* =================================================
+          LEFT SIDE - NETWORK VISUALIZATION
+      ================================================= */}
+
       <section className="auth-visual">
+
+        {/* Brand */}
         <div className="brand">
           <div className="brand-mark">
             <Network size={21} />
@@ -149,8 +181,11 @@ export default function Login() {
           </div>
         </div>
 
+        {/* Introduction */}
         <div className="visual-content">
-          <span className="eyebrow">DECENTRALIZED NETWORK</span>
+          <span className="eyebrow">
+            DECENTRALIZED NETWORK
+          </span>
 
           <h2>
             Connect.
@@ -161,12 +196,14 @@ export default function Login() {
           </h2>
 
           <p>
-            Secure node management and communication for your mobile ad-hoc
-            network.
+            Secure node management and communication for your
+            mobile ad-hoc network.
           </p>
         </div>
 
+        {/* Network Topology */}
         <div className={`topology topology-${networkState}`}>
+
           <div className="connection c1" />
           <div className="connection c2" />
           <div className="connection c3" />
@@ -174,6 +211,7 @@ export default function Login() {
           <div className="connection c5" />
           <div className="connection c6" />
 
+          {/* Node 01 */}
           <div
             className={`network-node n1 ${
               faultNode === "01" ? "fault-node" : ""
@@ -183,6 +221,7 @@ export default function Login() {
             <div className="node-core" />
           </div>
 
+          {/* Node 02 */}
           <div
             className={`network-node n2 ${
               faultNode === "02" ? "fault-node" : ""
@@ -192,6 +231,7 @@ export default function Login() {
             <div className="node-core" />
           </div>
 
+          {/* Node 03 */}
           <div
             className={`network-node n3 ${
               faultNode === "03" ? "fault-node" : ""
@@ -201,6 +241,7 @@ export default function Login() {
             <div className="node-core" />
           </div>
 
+          {/* Node 04 */}
           <div
             className={`network-node n4 ${
               faultNode === "04" ? "fault-node" : ""
@@ -210,6 +251,7 @@ export default function Login() {
             <div className="node-core" />
           </div>
 
+          {/* Node 05 */}
           <div
             className={`network-node n5 ${
               faultNode === "05" ? "fault-node" : ""
@@ -219,6 +261,7 @@ export default function Login() {
             <div className="node-core" />
           </div>
 
+          {/* Node 06 */}
           <div
             className={`network-node n6 ${
               faultNode === "06" ? "fault-node" : ""
@@ -228,6 +271,7 @@ export default function Login() {
             <div className="node-core" />
           </div>
 
+          {/* Network Core */}
           <div className="network-core">
             <div className="core-ring" />
             <Network size={26} />
@@ -235,19 +279,28 @@ export default function Login() {
           </div>
         </div>
 
+        {/* Network Status */}
         <div className="visual-footer">
           <span className="online-dot" />
 
           <span>LIVE NETWORK</span>
 
           <strong>
-            {networkState === "stable" ? "OPERATIONAL" : "MONITORING"}
+            {networkState === "stable"
+              ? "OPERATIONAL"
+              : "MONITORING"}
           </strong>
         </div>
       </section>
 
+      {/* =================================================
+          RIGHT SIDE - AUTHENTICATION
+      ================================================= */}
+
       <section className="auth-section">
         <div className="auth-container">
+
+          {/* Mobile Brand */}
           <div className="mobile-brand">
             <div className="brand-mark">
               <Network size={18} />
@@ -256,17 +309,28 @@ export default function Login() {
             <strong>MANET</strong>
           </div>
 
+          {/* =================================================
+              ACCESS OPTIONS
+          ================================================= */}
+
           {mode === "options" && (
             <div className="access-screen">
+
               <div className="auth-heading">
-                <span className="auth-label">NODE ACCESS</span>
+                <span className="auth-label">
+                  NODE ACCESS
+                </span>
 
                 <h2>Welcome to MANET</h2>
 
-                <p>Choose how you want to access the network.</p>
+                <p>
+                  Choose how you want to access the network.
+                </p>
               </div>
 
               <div className="access-options">
+
+                {/* Admin Login */}
                 <button
                   type="button"
                   className="access-card"
@@ -285,6 +349,7 @@ export default function Login() {
                   </div>
                 </button>
 
+                {/* New Node */}
                 <button
                   type="button"
                   className="access-card"
@@ -302,24 +367,34 @@ export default function Login() {
                     <ArrowRight size={17} />
                   </div>
                 </button>
+
               </div>
 
+              {/* Security Notice */}
               <div className="security-note">
                 <ShieldCheck size={18} />
 
                 <div>
-                  <strong>Authorized network access</strong>
+                  <strong>
+                    Authorized network access
+                  </strong>
 
                   <span>
-                    Only registered nodes can join the MANET network.
+                    Only registered nodes can join the
+                    MANET network.
                   </span>
                 </div>
               </div>
             </div>
           )}
 
+          {/* =================================================
+              ADMIN LOGIN / REJOIN
+          ================================================= */}
+
           {mode === "admin" && (
             <div className="auth-form-screen">
+
               <button
                 type="button"
                 className="back-button"
@@ -330,14 +405,20 @@ export default function Login() {
               </button>
 
               <div className="auth-heading">
-                <span className="auth-label">ADMIN / REJOIN</span>
+                <span className="auth-label">
+                  ADMIN / REJOIN
+                </span>
 
                 <h2>Access the network</h2>
 
-                <p>Sign in with your existing node credentials.</p>
+                <p>
+                  Sign in with your existing node credentials.
+                </p>
               </div>
 
               <form onSubmit={handleSubmit}>
+
+                {/* Node ID */}
                 <div className="field">
                   <label>Node ID / Admin ID</label>
 
@@ -358,6 +439,7 @@ export default function Login() {
                   </div>
                 </div>
 
+                {/* Password */}
                 <div className="field">
                   <label>Password</label>
 
@@ -378,6 +460,7 @@ export default function Login() {
                   </div>
                 </div>
 
+                {/* Remember */}
                 <div className="form-row">
                   <label className="remember">
                     <input type="checkbox" />
@@ -392,6 +475,7 @@ export default function Login() {
                   </button>
                 </div>
 
+                {/* Submit */}
                 <button
                   className="submit-button"
                   type="submit"
@@ -400,10 +484,13 @@ export default function Login() {
                   <span>Login / Rejoin</span>
                   <ArrowRight size={16} />
                 </button>
+
               </form>
 
               <div className="form-footer">
-                <span>Need to register a new node?</span>
+                <span>
+                  Need to register a new node?
+                </span>
 
                 <button
                   type="button"
@@ -412,11 +499,17 @@ export default function Login() {
                   New Node Registry
                 </button>
               </div>
+
             </div>
           )}
 
+          {/* =================================================
+              NEW NODE REGISTRATION
+          ================================================= */}
+
           {mode === "registry" && (
             <div className="auth-form-screen">
+
               <button
                 type="button"
                 className="back-button"
@@ -427,16 +520,21 @@ export default function Login() {
               </button>
 
               <div className="auth-heading">
-                <span className="auth-label">NODE REGISTRATION</span>
+                <span className="auth-label">
+                  NODE REGISTRATION
+                </span>
 
                 <h2>Register new node</h2>
 
                 <p>
-                  Add a new authorized node to the MANET network.
+                  Add a new authorized node to the MANET
+                  network.
                 </p>
               </div>
 
               <form onSubmit={handleSubmit}>
+
+                {/* Node Name */}
                 <div className="field">
                   <label>Node name</label>
 
@@ -457,6 +555,7 @@ export default function Login() {
                   </div>
                 </div>
 
+                {/* Node ID */}
                 <div className="field">
                   <label>Node ID</label>
 
@@ -477,10 +576,13 @@ export default function Login() {
                   </div>
                 </div>
 
+                {/* Admin Key */}
                 <div className="field">
                   <label>
                     Admin key
-                    <span className="required-label">Required</span>
+                    <span className="required-label">
+                      Required
+                    </span>
                   </label>
 
                   <div className="input-wrapper">
@@ -500,6 +602,7 @@ export default function Login() {
                   </div>
                 </div>
 
+                {/* Password */}
                 <div className="field">
                   <label>Node password</label>
 
@@ -520,6 +623,7 @@ export default function Login() {
                   </div>
                 </div>
 
+                {/* Confirm Password */}
                 <div className="field">
                   <label>Confirm password</label>
 
@@ -540,6 +644,7 @@ export default function Login() {
                   </div>
                 </div>
 
+                {/* Submit */}
                 <button
                   className="submit-button"
                   type="submit"
@@ -548,23 +653,29 @@ export default function Login() {
                   <span>Register Node</span>
                   <ArrowRight size={16} />
                 </button>
+
               </form>
 
+              {/* Admin Authorization */}
               <div className="admin-warning">
                 <ShieldCheck size={17} />
 
                 <div>
-                  <strong>Administrator authorization required</strong>
+                  <strong>
+                    Administrator authorization required
+                  </strong>
 
                   <span>
-                    A valid admin key is required before a new node can be
-                    registered.
+                    A valid admin key is required before a
+                    new node can be registered.
                   </span>
                 </div>
               </div>
 
               <div className="form-footer">
-                <span>Already have a registered node?</span>
+                <span>
+                  Already have a registered node?
+                </span>
 
                 <button
                   type="button"
@@ -573,10 +684,13 @@ export default function Login() {
                   Login / Rejoin
                 </button>
               </div>
+
             </div>
           )}
+
         </div>
       </section>
+
     </div>
   );
 }
