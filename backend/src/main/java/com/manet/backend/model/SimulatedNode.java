@@ -1,4 +1,6 @@
 package com.manet.backend.model;
+
+import com.manet.backend.simulation.fault.FaultType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -31,4 +33,6 @@ public class SimulatedNode {
     private boolean active;
 
     private boolean faulty;
+
+    private FaultType faultType;
 }

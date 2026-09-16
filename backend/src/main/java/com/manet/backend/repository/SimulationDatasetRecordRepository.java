@@ -10,13 +10,34 @@ import java.util.List;
 public interface SimulationDatasetRecordRepository
         extends JpaRepository<SimulationDatasetRecord, Long> {
 
-    List<SimulationDatasetRecord> findBySimulationIdOrderByTimestampAscNodeIdAsc(
+    // ALL RECORDS
+   List<SimulationDatasetRecord>
+    findBySimulationIdOrderByTimestampAscNodeIdAsc(
             Long simulationId
     );
 
-    long countBySimulationId(
+    // NODE RECORDS
+    // Used by Random Forest / XGBoost / Isolation Forest
+   List<SimulationDatasetRecord>
+    findBySimulationIdAndRecordTypeOrderByTimestampAscNodeIdAsc(
+            Long simulationId,
+            String recordType
+    );
+
+    // LINK RECORDS
+    // Used by LSTM
+   List<SimulationDatasetRecord>
+    findBySimulationIdAndRecordTypeOrderByTimestampAsc(
+            Long simulationId,
+            String recordType
+    );
+
+    // COUNT
+   long countBySimulationId(
             Long simulationId
     );
+
+    // DELETE
 
     void deleteBySimulationId(
             Long simulationId
