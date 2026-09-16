@@ -182,10 +182,7 @@ function Home() {
           </div>
 
         </header>
-
-
        
-
         <section className="home-stats">
 
           {networkStats.map((stat) => (
