@@ -1,779 +1,515 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
+  Activity,
+  AlertOctagon,
   AlertTriangle,
-  BrainCircuit,
   CheckCircle2,
   Clock3,
   Cpu,
+  GitBranch,
+  History,
+  Network,
   RefreshCw,
-  ShieldAlert,
+  RotateCcw,
   ShieldCheck,
-  UserCog,
-  XCircle,
   Zap,
 } from "lucide-react";
-
-import Sidebar from "./Sidebar";
+import Sidebar from "../components/Sidebar";
 import "./FaultRecovery.css";
 
-/*
-|--------------------------------------------------------------------------
-| DEMO DATA
-|--------------------------------------------------------------------------
-| Replace this data with your Spring Boot API responses later.
-*/
-
-const detectedFaults = [
+const initialFaults = [
   {
-    id: "FLT-001",
-    node: "N05",
-    faultType: "LOW_BATTERY",
-    severity: "HIGH",
-    detectedBy: "Random Forest",
-    confidence: 91,
-    detectedAt: "2 min ago",
-    status: "RECOVERING",
-  },
-  {
-    id: "FLT-002",
+    id: "F-1042",
+    type: "Node Failure",
+    severity: "Critical",
     node: "N07",
-    faultType: "LINK_FAILURE",
-    severity: "HIGH",
-    detectedBy: "XGBoost",
+    detected: "2 min ago",
+    confidence: 97,
+    decision: "Reroute Traffic",
+    action: "Activate alternate path",
+    status: "Recovered",
+    duration: "18 sec",
+  },
+  {
+    id: "F-1041",
+    type: "Low Battery",
+    severity: "High",
+    node: "N12",
+    detected: "6 min ago",
     confidence: 94,
-    detectedAt: "4 min ago",
-    status: "RECOVERING",
+    decision: "Isolate Node",
+    action: "Remove node from routing",
+    status: "In Progress",
+    duration: "12 sec",
   },
   {
-    id: "FLT-003",
-    node: "N03",
-    faultType: "NODE_FAILURE",
-    severity: "MEDIUM",
-    detectedBy: "Random Forest",
+    id: "F-1040",
+    type: "Link Degradation",
+    severity: "Medium",
+    node: "N03 → N09",
+    detected: "11 min ago",
+    confidence: 91,
+    decision: "Change Route",
+    action: "Select stable link",
+    status: "Recovered",
+    duration: "9 sec",
+  },
+  {
+    id: "F-1039",
+    type: "High Latency",
+    severity: "Medium",
+    node: "N05",
+    detected: "18 min ago",
+    confidence: 88,
+    decision: "Load Balance",
+    action: "Redistribute traffic",
+    status: "Recovered",
+    duration: "14 sec",
+  },
+  {
+    id: "F-1038",
+    type: "Packet Loss",
+    severity: "Low",
+    node: "N10 → N14",
+    detected: "26 min ago",
     confidence: 86,
-    detectedAt: "11 min ago",
-    status: "RECOVERED",
-  },
-  {
-    id: "FLT-004",
-    node: "N09",
-    faultType: "BATTERY_DEGRADATION",
-    severity: "LOW",
-    detectedBy: "Random Forest",
-    confidence: 82,
-    detectedAt: "18 min ago",
-    status: "MONITORING",
+    decision: "Monitor",
+    action: "Continue observation",
+    status: "Monitoring",
+    duration: "—",
   },
 ];
 
 const recoveryHistory = [
   {
-    id: "REC-008",
-    node: "N03",
-    fault: "NODE_FAILURE",
-    decision: "REROUTE_TRAFFIC",
-    action: "Route switched through N04 → N06",
-    initiatedBy: "AI Recovery",
-    status: "SUCCESS",
-    time: "11 min ago",
+    time: "19:47:32",
+    fault: "Node Failure",
+    node: "N07",
+    action: "Traffic rerouted",
+    result: "Successful",
   },
   {
-    id: "REC-007",
-    node: "N12",
-    fault: "LINK_FAILURE",
-    decision: "REESTABLISH_LINK",
-    action: "Alternative link established",
-    initiatedBy: "AI Recovery",
-    status: "SUCCESS",
-    time: "25 min ago",
+    time: "19:43:18",
+    fault: "Link Degradation",
+    node: "N03 → N09",
+    action: "Alternate link selected",
+    result: "Successful",
   },
   {
-    id: "REC-006",
-    node: "N08",
-    fault: "LOW_BATTERY",
-    decision: "REDUCE_LOAD",
-    action: "Traffic load redistributed",
-    initiatedBy: "AI Recovery",
-    status: "SUCCESS",
-    time: "31 min ago",
+    time: "19:36:41",
+    fault: "High Latency",
+    node: "N05",
+    action: "Traffic redistributed",
+    result: "Successful",
   },
   {
-    id: "REC-005",
-    node: "N02",
-    fault: "LINK_FAILURE",
-    decision: "REROUTE_TRAFFIC",
-    action: "Waiting for route stabilization",
-    initiatedBy: "AI Recovery",
-    status: "IN_PROGRESS",
-    time: "42 min ago",
+    time: "19:29:07",
+    fault: "Battery Warning",
+    node: "N11",
+    action: "Node isolated",
+    result: "Successful",
   },
 ];
 
-const recoveryDecisions = [
+const flowSteps = [
   {
-    node: "N05",
-    fault: "LOW_BATTERY",
-    decision: "REDUCE_LOAD",
-    reason:
-      "Battery level is below the configured threshold. Reduce traffic load to preserve node availability.",
-    action: "Redistribute traffic",
-    priority: "HIGH",
+    title: "Fault Detected",
+    description: "Network anomaly identified",
+    icon: AlertOctagon,
   },
   {
-    node: "N07",
-    fault: "LINK_FAILURE",
-    decision: "REROUTE_TRAFFIC",
-    reason:
-      "Primary communication link is unavailable. An alternative route should be selected.",
-    action: "Switch route",
-    priority: "HIGH",
+    title: "AI Analysis",
+    description: "Random Forest / XGBoost",
+    icon: Cpu,
+  },
+  {
+    title: "Recovery Decision",
+    description: "Best recovery action selected",
+    icon: GitBranch,
+  },
+  {
+    title: "Self-Healing",
+    description: "Network automatically restored",
+    icon: ShieldCheck,
   },
 ];
 
 function SeverityBadge({ severity }) {
   return (
-    <span className={`fr-severity ${severity.toLowerCase()}`}>
-      {severity === "HIGH" && <AlertTriangle size={11} />}
-      {severity === "MEDIUM" && <ShieldAlert size={11} />}
-      {severity === "LOW" && <ShieldCheck size={11} />}
+    <span className={`severity-badge ${severity.toLowerCase()}`}>
       {severity}
     </span>
   );
 }
 
 function StatusBadge({ status }) {
-  const normalized = status.toLowerCase().replace(/\s+/g, "-");
+  const className = status.toLowerCase().replace(/\s+/g, "-");
 
   return (
-    <span className={`fr-status ${normalized}`}>
-      {status === "RECOVERED" && <CheckCircle2 size={11} />}
-      {status === "RECOVERING" && <RefreshCw size={11} />}
-      {status === "MONITORING" && <Clock3 size={11} />}
-      {status === "SUCCESS" && <CheckCircle2 size={11} />}
-      {status === "IN_PROGRESS" && <RefreshCw size={11} />}
+    <span className={`recovery-status ${className}`}>
+      {status === "Recovered" && <CheckCircle2 size={14} />}
+      {status === "In Progress" && <RefreshCw size={14} />}
+      {status === "Monitoring" && <Activity size={14} />}
       {status}
     </span>
   );
 }
 
 function FaultRecovery() {
-  const [selectedFault, setSelectedFault] = useState(detectedFaults[0]);
+  const [faults, setFaults] = useState(initialFaults);
+  const [severityFilter, setSeverityFilter] = useState("All");
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [selectedFault, setSelectedFault] = useState(initialFaults[0]);
+
+  const filteredFaults = useMemo(() => {
+    return faults.filter((fault) => {
+      const severityMatch =
+        severityFilter === "All" || fault.severity === severityFilter;
+
+      const statusMatch =
+        statusFilter === "All" || fault.status === statusFilter;
+
+      return severityMatch && statusMatch;
+    });
+  }, [faults, severityFilter, statusFilter]);
+
+  const stats = useMemo(() => {
+    return {
+      total: faults.length,
+      critical: faults.filter((fault) => fault.severity === "Critical").length,
+      active: faults.filter((fault) => fault.status === "In Progress").length,
+      recovered: faults.filter((fault) => fault.status === "Recovered").length,
+    };
+  }, [faults]);
+
+  const refreshFaults = () => {
+    setFaults([...initialFaults]);
+  };
+
+  const recoverSelectedFault = () => {
+    if (!selectedFault) return;
+
+    const updated = faults.map((fault) =>
+      fault.id === selectedFault.id
+        ? {
+            ...fault,
+            status: "Recovered",
+            action: "Recovery completed",
+            duration: "21 sec",
+          }
+        : fault
+    );
+
+    setFaults(updated);
+    setSelectedFault({
+      ...selectedFault,
+      status: "Recovered",
+      action: "Recovery completed",
+      duration: "21 sec",
+    });
+  };
 
   return (
-    <div className="dashboard-layout">
-      <Sidebar />
+    <div className="faults-page">
+      <Sidebar activePage="faults" />
 
-      <main className="fault-page">
-        {/* =====================================================
-            HEADER
-        ===================================================== */}
-
-        <header className="fault-header">
+      <main className="faults-main">
+        <header className="faults-header">
           <div>
-            <p className="fault-eyebrow">SELF-HEALING CONTROL CENTER</p>
-
+            <div className="page-eyebrow">
+              <ShieldCheck size={15} />
+              SELF-HEALING OPERATIONS
+            </div>
             <h1>Faults & Recovery</h1>
-
-            <p className="fault-subtitle">
-              Detect network faults, evaluate their severity and monitor
-              automated recovery actions.
+            <p>
+              Detect network faults, evaluate AI recovery decisions, and track
+              self-healing operations.
             </p>
           </div>
 
-          <div className="fault-system-status">
-            <span className="fault-live-dot" />
-
-            <div>
-              <span>SELF-HEALING ENGINE</span>
-              <strong>OPERATIONAL</strong>
-            </div>
-          </div>
+          <button className="refresh-button" onClick={refreshFaults}>
+            <RefreshCw size={17} />
+            Refresh
+          </button>
         </header>
-
-        {/* =====================================================
-            SUMMARY
-        ===================================================== */}
 
         <section className="fault-summary-grid">
           <div className="fault-summary-card">
-            <div className="fault-summary-icon red">
-              <AlertTriangle size={20} />
+            <div className="summary-icon blue">
+              <AlertOctagon size={21} />
             </div>
-
             <div>
-              <span>Detected Faults</span>
-              <strong>2</strong>
-              <small>Active incidents</small>
+              <span>Total Detected</span>
+              <strong>{stats.total}</strong>
             </div>
+            <small>Current session</small>
           </div>
 
           <div className="fault-summary-card">
-            <div className="fault-summary-icon orange">
-              <RefreshCw size={20} />
+            <div className="summary-icon red">
+              <AlertTriangle size={21} />
             </div>
-
             <div>
-              <span>Recovering</span>
-              <strong>2</strong>
-              <small>Actions in progress</small>
+              <span>Critical Faults</span>
+              <strong>{stats.critical}</strong>
             </div>
+            <small>Requires attention</small>
           </div>
 
           <div className="fault-summary-card">
-            <div className="fault-summary-icon green">
-              <CheckCircle2 size={20} />
+            <div className="summary-icon amber">
+              <RotateCcw size={21} />
             </div>
+            <div>
+              <span>Active Recovery</span>
+              <strong>{stats.active}</strong>
+            </div>
+            <small>Healing in progress</small>
+          </div>
 
+          <div className="fault-summary-card">
+            <div className="summary-icon green">
+              <CheckCircle2 size={21} />
+            </div>
             <div>
               <span>Recovered</span>
-              <strong>8</strong>
-              <small>Successful recoveries</small>
+              <strong>{stats.recovered}</strong>
             </div>
-          </div>
-
-          <div className="fault-summary-card">
-            <div className="fault-summary-icon purple">
-              <BrainCircuit size={20} />
-            </div>
-
-            <div>
-              <span>AI Decisions</span>
-              <strong>10</strong>
-              <small>Automated decisions</small>
-            </div>
+            <small>Successfully restored</small>
           </div>
         </section>
 
-        {/* =====================================================
-            DETECTED FAULTS
-        ===================================================== */}
-
-        <section className="fault-section">
-          <div className="fault-section-heading">
+        <section className="recovery-flow-panel">
+          <div className="section-heading">
             <div>
-              <h2>Detected Faults</h2>
-
-              <p>
-                Faults detected from the current MANET simulation.
-              </p>
+              <span className="section-label">AUTOMATED RESPONSE</span>
+              <h2>Self-Healing Flow</h2>
             </div>
-
-            <span className="fault-live-label">
+            <span className="live-indicator">
               <span />
               LIVE
             </span>
           </div>
 
-          <div className="fault-table-wrapper">
-            <table className="fault-table">
-              <thead>
-                <tr>
-                  <th>Fault ID</th>
-                  <th>Node</th>
-                  <th>Fault Type</th>
-                  <th>Severity</th>
-                  <th>Detected By</th>
-                  <th>Confidence</th>
-                  <th>Detected</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
+          <div className="recovery-flow">
+            {flowSteps.map((step, index) => {
+              const Icon = step.icon;
 
-              <tbody>
-                {detectedFaults.map((fault) => (
-                  <tr
-                    key={fault.id}
-                    className={
-                      selectedFault.id === fault.id
-                        ? "selected-fault"
-                        : ""
-                    }
-                    onClick={() => setSelectedFault(fault)}
-                  >
-                    <td>
-                      <span className="fault-id">{fault.id}</span>
-                    </td>
+              return (
+                <React.Fragment key={step.title}>
+                  <div className="flow-step">
+                    <div className="flow-icon">
+                      <Icon size={21} />
+                    </div>
+                    <div>
+                      <strong>{step.title}</strong>
+                      <span>{step.description}</span>
+                    </div>
+                  </div>
 
-                    <td>
-                      <div className="fault-node">
-                        <div className="fault-node-icon">
-                          <Cpu size={14} />
-                        </div>
-
-                        <strong>{fault.node}</strong>
-                      </div>
-                    </td>
-
-                    <td>
-                      <span className="fault-type">
-                        {fault.faultType}
-                      </span>
-                    </td>
-
-                    <td>
-                      <SeverityBadge severity={fault.severity} />
-                    </td>
-
-                    <td>
-                      <span className="detected-model">
-                        {fault.detectedBy}
-                      </span>
-                    </td>
-
-                    <td>
-                      <strong className="confidence">
-                        {fault.confidence}%
-                      </strong>
-                    </td>
-
-                    <td>
-                      <span className="detected-time">
-                        {fault.detectedAt}
-                      </span>
-                    </td>
-
-                    <td>
-                      <StatusBadge status={fault.status} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                  {index < flowSteps.length - 1 && (
+                    <div className="flow-arrow">
+                      <GitBranch size={18} />
+                    </div>
+                  )}
+                </React.Fragment>
+              );
+            })}
           </div>
-
-          <p className="table-hint">
-            Select a fault to view its recovery decision and affected node.
-          </p>
         </section>
 
-        {/* =====================================================
-            FAULT DETAILS + RECOVERY DECISION
-        ===================================================== */}
-
-        <section className="fault-detail-grid">
-          {/* AFFECTED NODE */}
-
-          <div className="fault-section detail-card">
-            <div className="fault-section-heading">
+        <section className="faults-content-grid">
+          <div className="faults-list-panel">
+            <div className="section-heading">
               <div>
-                <h2>Affected Node</h2>
-
-                <p>Selected fault details.</p>
+                <span className="section-label">FAULT MONITORING</span>
+                <h2>Detected Faults</h2>
               </div>
-
-              <Cpu size={19} />
+              <span className="record-count">{filteredFaults.length} events</span>
             </div>
 
-            <div className="affected-node">
-              <div className="affected-node-icon">
-                <Cpu size={27} />
-              </div>
-
-              <div>
-                <span>Node</span>
-                <strong>{selectedFault.node}</strong>
-              </div>
-
-              <SeverityBadge severity={selectedFault.severity} />
-            </div>
-
-            <div className="node-detail-list">
-              <div>
-                <span>Fault Type</span>
-                <strong>{selectedFault.faultType}</strong>
-              </div>
-
-              <div>
-                <span>Detected By</span>
-                <strong>{selectedFault.detectedBy}</strong>
-              </div>
-
-              <div>
-                <span>Prediction Confidence</span>
-                <strong>{selectedFault.confidence}%</strong>
-              </div>
-
-              <div>
-                <span>Current Status</span>
-                <StatusBadge status={selectedFault.status} />
-              </div>
-            </div>
-          </div>
-
-          {/* RECOVERY DECISION */}
-
-          <div className="fault-section detail-card">
-            <div className="fault-section-heading">
-              <div>
-                <h2>Recovery Decision</h2>
-
-                <p>Decision generated by the recovery engine.</p>
-              </div>
-
-              <BrainCircuit size={19} />
-            </div>
-
-            {recoveryDecisions
-              .filter(
-                (decision) =>
-                  decision.node === selectedFault.node
-              )
-              .map((decision) => (
-                <div className="decision-content" key={decision.node}>
-                  <div className="decision-header">
-                    <div className="decision-icon">
-                      <BrainCircuit size={21} />
-                    </div>
-
-                    <div>
-                      <span>AI RECOMMENDATION</span>
-                      <strong>{decision.decision}</strong>
-                    </div>
-                  </div>
-
-                  <div className="decision-reason">
-                    <span>Reason</span>
-                    <p>{decision.reason}</p>
-                  </div>
-
-                  <div className="decision-action">
-                    <div>
-                      <span>Recommended Action</span>
-                      <strong>{decision.action}</strong>
-                    </div>
-
-                    <span
-                      className={`decision-priority ${decision.priority.toLowerCase()}`}
+            <div className="filter-row">
+              <div className="filter-group">
+                {["All", "Critical", "High", "Medium", "Low"].map(
+                  (severity) => (
+                    <button
+                      key={severity}
+                      className={
+                        severityFilter === severity ? "active" : ""
+                      }
+                      onClick={() => setSeverityFilter(severity)}
                     >
-                      {decision.priority}
-                    </span>
+                      {severity}
+                    </button>
+                  )
+                )}
+              </div>
+
+              <select
+                value={statusFilter}
+                onChange={(event) => setStatusFilter(event.target.value)}
+                className="status-select"
+              >
+                <option value="All">All Status</option>
+                <option value="Recovered">Recovered</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Monitoring">Monitoring</option>
+              </select>
+            </div>
+
+            <div className="fault-table-wrapper">
+              <table className="fault-table">
+                <thead>
+                  <tr>
+                    <th>Fault</th>
+                    <th>Severity</th>
+                    <th>Affected</th>
+                    <th>AI Decision</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredFaults.map((fault) => (
+                    <tr
+                      key={fault.id}
+                      className={
+                        selectedFault?.id === fault.id ? "selected" : ""
+                      }
+                      onClick={() => setSelectedFault(fault)}
+                    >
+                      <td>
+                        <div className="fault-name">
+                          <strong>{fault.type}</strong>
+                          <span>{fault.id}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <SeverityBadge severity={fault.severity} />
+                      </td>
+                      <td>
+                        <span className="affected-node">{fault.node}</span>
+                      </td>
+                      <td>
+                        <div className="decision-cell">
+                          <strong>{fault.decision}</strong>
+                          <span>{fault.confidence}% confidence</span>
+                        </div>
+                      </td>
+                      <td>
+                        <StatusBadge status={fault.status} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <aside className="fault-detail-panel">
+            {selectedFault && (
+              <>
+                <div className="detail-header">
+                  <div>
+                    <span className="section-label">FAULT DETAILS</span>
+                    <h2>{selectedFault.type}</h2>
+                    <span>{selectedFault.id}</span>
+                  </div>
+                  <SeverityBadge severity={selectedFault.severity} />
+                </div>
+
+                <div className="detail-grid">
+                  <div className="detail-item">
+                    <span>Affected Node</span>
+                    <strong>
+                      <Network size={15} />
+                      {selectedFault.node}
+                    </strong>
+                  </div>
+
+                  <div className="detail-item">
+                    <span>Detected</span>
+                    <strong>
+                      <Clock3 size={15} />
+                      {selectedFault.detected}
+                    </strong>
+                  </div>
+
+                  <div className="detail-item">
+                    <span>AI Confidence</span>
+                    <strong>{selectedFault.confidence}%</strong>
+                  </div>
+
+                  <div className="detail-item">
+                    <span>Recovery Duration</span>
+                    <strong>{selectedFault.duration}</strong>
                   </div>
                 </div>
-              ))}
 
-            {!recoveryDecisions.some(
-              (decision) => decision.node === selectedFault.node
-            ) && (
-              <div className="no-decision">
-                <ShieldCheck size={23} />
+                <div className="decision-box">
+                  <div className="decision-box-header">
+                    <Zap size={18} />
+                    <span>Recovery Decision</span>
+                  </div>
+                  <strong>{selectedFault.decision}</strong>
+                  <p>{selectedFault.action}</p>
+                </div>
 
-                <strong>No recovery decision required</strong>
+                <div className="detail-status">
+                  <span>Recovery Status</span>
+                  <StatusBadge status={selectedFault.status} />
+                </div>
 
-                <span>
-                  This node is currently being monitored.
-                </span>
-              </div>
+                {selectedFault.status !== "Recovered" && (
+                  <button
+                    className="execute-recovery"
+                    onClick={recoverSelectedFault}
+                  >
+                    <RotateCcw size={17} />
+                    Execute Recovery
+                  </button>
+                )}
+              </>
             )}
-          </div>
+          </aside>
         </section>
 
-        {/* =====================================================
-            RECOVERY ACTION
-        ===================================================== */}
-
-        <section className="fault-section">
-          <div className="fault-section-heading">
+        <section className="history-panel">
+          <div className="section-heading">
             <div>
-              <h2>Recovery Actions</h2>
-
-              <p>
-                Actions currently being executed to restore network
-                operation.
-              </p>
-            </div>
-
-            <RefreshCw size={19} />
-          </div>
-
-          <div className="recovery-action-grid">
-            <div className="recovery-action-card active">
-              <div className="recovery-action-header">
-                <div className="recovery-action-icon">
-                  <RefreshCw size={19} />
-                </div>
-
-                <StatusBadge status="IN_PROGRESS" />
-              </div>
-
-              <span className="recovery-node">NODE N05</span>
-
-              <h3>Reduce Traffic Load</h3>
-
-              <p>
-                Traffic is being redistributed to reduce battery
-                consumption on the affected node.
-              </p>
-
-              <div className="recovery-progress-header">
-                <span>Recovery Progress</span>
-                <strong>68%</strong>
-              </div>
-
-              <div className="recovery-progress-track">
-                <div
-                  className="recovery-progress-value"
-                  style={{ width: "68%" }}
-                />
-              </div>
-
-              <div className="recovery-action-footer">
-                <span>
-                  <BrainCircuit size={12} />
-                  AI Recovery
-                </span>
-
-                <span>Started 2 min ago</span>
-              </div>
-            </div>
-
-            <div className="recovery-action-card active">
-              <div className="recovery-action-header">
-                <div className="recovery-action-icon orange">
-                  <NetworkIcon />
-                </div>
-
-                <StatusBadge status="IN_PROGRESS" />
-              </div>
-
-              <span className="recovery-node">NODE N07</span>
-
-              <h3>Reroute Traffic</h3>
-
-              <p>
-                Traffic is being redirected through an alternative
-                communication path.
-              </p>
-
-              <div className="recovery-progress-header">
-                <span>Recovery Progress</span>
-                <strong>45%</strong>
-              </div>
-
-              <div className="recovery-progress-track">
-                <div
-                  className="recovery-progress-value"
-                  style={{ width: "45%" }}
-                />
-              </div>
-
-              <div className="recovery-action-footer">
-                <span>
-                  <BrainCircuit size={12} />
-                  AI Recovery
-                </span>
-
-                <span>Started 4 min ago</span>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* =====================================================
-            RECOVERY HISTORY
-        ===================================================== */}
-
-        <section className="fault-section">
-          <div className="fault-section-heading">
-            <div>
+              <span className="section-label">RECOVERY LOG</span>
               <h2>Recovery History</h2>
-
-              <p>
-                Previous recovery decisions and their outcomes.
-              </p>
             </div>
-
-            <Clock3 size={19} />
+            <History size={19} />
           </div>
 
-          <div className="history-table-wrapper">
-            <table className="history-table">
-              <thead>
-                <tr>
-                  <th>Recovery ID</th>
-                  <th>Node</th>
-                  <th>Fault</th>
-                  <th>Decision</th>
-                  <th>Action</th>
-                  <th>Initiated By</th>
-                  <th>Status</th>
-                  <th>Time</th>
-                </tr>
-              </thead>
+          <div className="history-list">
+            {recoveryHistory.map((item) => (
+              <div className="history-item" key={`${item.time}-${item.node}`}>
+                <div className="history-time">{item.time}</div>
 
-              <tbody>
-                {recoveryHistory.map((item) => (
-                  <tr key={item.id}>
-                    <td>
-                      <strong className="recovery-id">
-                        {item.id}
-                      </strong>
-                    </td>
+                <div className="history-marker">
+                  <span />
+                </div>
 
-                    <td>
-                      <div className="history-node">
-                        <Cpu size={13} />
-                        {item.node}
-                      </div>
-                    </td>
+                <div className="history-info">
+                  <strong>{item.fault}</strong>
+                  <span>{item.node}</span>
+                </div>
 
-                    <td>
-                      <span className="history-fault">
-                        {item.fault}
-                      </span>
-                    </td>
+                <div className="history-action">
+                  <span>{item.action}</span>
+                </div>
 
-                    <td>
-                      <span className="history-decision">
-                        {item.decision}
-                      </span>
-                    </td>
-
-                    <td>
-                      <span className="history-action">
-                        {item.action}
-                      </span>
-                    </td>
-
-                    <td>
-                      <span className="initiated-by">
-                        <BrainCircuit size={11} />
-                        {item.initiatedBy}
-                      </span>
-                    </td>
-
-                    <td>
-                      <StatusBadge status={item.status} />
-                    </td>
-
-                    <td>
-                      <span className="history-time">
-                        {item.time}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                <div className="history-result">
+                  <CheckCircle2 size={15} />
+                  {item.result}
+                </div>
+              </div>
+            ))}
           </div>
         </section>
-
-        {/* =====================================================
-            SELF HEALING FLOW
-        ===================================================== */}
-
-        <section className="fault-section healing-flow-section">
-          <div className="fault-section-heading">
-            <div>
-              <h2>Self-Healing Flow</h2>
-
-              <p>
-                NeuroHeal fault detection and recovery workflow.
-              </p>
-            </div>
-
-            <ShieldCheck size={19} />
-          </div>
-
-          <div className="healing-flow">
-            <div className="flow-step completed">
-              <div className="flow-icon">
-                <AlertTriangle size={18} />
-              </div>
-
-              <strong>Fault Detected</strong>
-              <span>Network anomaly identified</span>
-            </div>
-
-            <div className="flow-line completed" />
-
-            <div className="flow-step completed">
-              <div className="flow-icon">
-                <BrainCircuit size={18} />
-              </div>
-
-              <strong>AI Analysis</strong>
-              <span>Fault classified and risk evaluated</span>
-            </div>
-
-            <div className="flow-line completed" />
-
-            <div className="flow-step active">
-              <div className="flow-icon">
-                <Zap size={18} />
-              </div>
-
-              <strong>Recovery Decision</strong>
-              <span>Best recovery action selected</span>
-            </div>
-
-            <div className="flow-line active" />
-
-            <div className="flow-step active">
-              <div className="flow-icon">
-                <RefreshCw size={18} />
-              </div>
-
-              <strong>Self-Healing</strong>
-              <span>Recovery action executing</span>
-            </div>
-
-            <div className="flow-line" />
-
-            <div className="flow-step">
-              <div className="flow-icon">
-                <CheckCircle2 size={18} />
-              </div>
-
-              <strong>Recovered</strong>
-              <span>Network returns to stable state</span>
-            </div>
-          </div>
-        </section>
-
-        {/* =====================================================
-            FOOTER
-        ===================================================== */}
-
-        <footer className="fault-footer">
-          <span>
-            NeuroHeal · Predictive Self-Healing MANET
-          </span>
-
-          <span>
-            <span className="fault-footer-dot" />
-            Recovery Engine Operational
-          </span>
-        </footer>
       </main>
     </div>
-  );
-}
-
-/*
-|--------------------------------------------------------------------------
-| Small network icon used by the recovery action card.
-|--------------------------------------------------------------------------
-*/
-
-function NetworkIcon() {
-  return (
-    <svg
-      width="19"
-      height="19"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <circle cx="12" cy="5" r="2" />
-      <circle cx="5" cy="19" r="2" />
-      <circle cx="19" cy="19" r="2" />
-      <path d="M12 7v5" />
-      <path d="M12 12 5 17" />
-      <path d="m12 12 7 5" />
-    </svg>
   );
 }
 

@@ -35,7 +35,7 @@ function Sidebar() {
     },
     {
       name: "Faults & Recovery",
-      path: "/faults-recovery",
+      path: "/fault-recovery",
       icon: ShieldAlert,
     },
     {

@@ -85,9 +85,7 @@ export default function Login() {
     };
   }, []);
 
-  // --------------------------------------------------
-  // Form handling
-  // --------------------------------------------------
+  
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -101,9 +99,7 @@ export default function Login() {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // ----------------------------------------------
-    // New Node Registration
-    // ----------------------------------------------
+ 
 
     if (mode === "registry") {
       if (formData.password !== formData.confirmPassword) {
@@ -131,9 +127,7 @@ export default function Login() {
       return;
     }
 
-    // ----------------------------------------------
-    // Admin Login / Node Rejoin
-    // ----------------------------------------------
+ 
 
     console.log("Admin / Rejoin:", {
       nodeId: formData.nodeId,
@@ -144,9 +138,7 @@ export default function Login() {
     navigate("/home");
   };
 
-  // --------------------------------------------------
-  // Reset authentication screen
-  // --------------------------------------------------
+ 
 
   const resetForm = () => {
     setFormData({
@@ -163,9 +155,7 @@ export default function Login() {
   return (
     <div className="auth-page">
 
-      {/* =================================================
-          LEFT SIDE - NETWORK VISUALIZATION
-      ================================================= */}
+     
 
       <section className="auth-visual">
 
@@ -293,9 +283,7 @@ export default function Login() {
         </div>
       </section>
 
-      {/* =================================================
-          RIGHT SIDE - AUTHENTICATION
-      ================================================= */}
+     
 
       <section className="auth-section">
         <div className="auth-container">
@@ -309,9 +297,7 @@ export default function Login() {
             <strong>MANET</strong>
           </div>
 
-          {/* =================================================
-              ACCESS OPTIONS
-          ================================================= */}
+          
 
           {mode === "options" && (
             <div className="access-screen">

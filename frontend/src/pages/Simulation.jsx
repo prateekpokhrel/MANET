@@ -1,5 +1,5 @@
-
 import React, { useMemo, useState } from "react";
+
 import {
   Activity,
   AlertTriangle,
@@ -8,37 +8,33 @@ import {
   CheckCircle2,
   CircleDot,
   Cpu,
-  Gauge,
   HeartPulse,
   Info,
-  Link2,
   MapPin,
   MonitorCog,
-  Moon,
   Network,
   Pause,
   Play,
   RefreshCw,
-  Router,
-  ShieldCheck,
   Signal,
-  Sun,
   Wifi,
   X,
-  Zap,
 } from "lucide-react";
 
 import Sidebar from "../components/Sidebar";
 import "./Simulation.css";
 
-/*
- * ============================================================
- * MANET SIMULATION CONFIGURATION
- * ============================================================
- */
+/* ============================================================
+   MANET SIMULATION CONFIGURATION
+============================================================ */
 
 const MIN_NODE_DISTANCE = 8;
 const CONNECTION_RANGE = 32;
+
+
+/* ============================================================
+   INITIAL NETWORK NODES
+============================================================ */
 
 const initialNodes = [
   {
@@ -223,24 +219,31 @@ const initialNodes = [
   },
 ];
 
-/*
- * ============================================================
- * HELPERS
- * ============================================================
- */
+
+/* ============================================================
+   HELPERS
+============================================================ */
 
 function calculateNodeHealth(node) {
-  if (node.status === "FAILED" || node.status === "INACTIVE") {
+  if (
+    node.status === "FAILED" ||
+    node.status === "INACTIVE"
+  ) {
     return 0;
   }
 
   const batteryScore = Number(node.batteryLevel ?? 0);
   const cpuScore = 100 - Number(node.cpuUsage ?? 100);
 
-  const health = batteryScore * 0.6 + cpuScore * 0.4;
+  const health =
+    batteryScore * 0.6 +
+    cpuScore * 0.4;
 
-  return Math.round(Math.max(0, Math.min(100, health)));
+  return Math.round(
+    Math.max(0, Math.min(100, health))
+  );
 }
+
 
 function getHealthStatus(node) {
   const health = calculateNodeHealth(node);
@@ -249,7 +252,15 @@ function getHealthStatus(node) {
     return {
       label: "Failed",
       className: "failed",
-      icon: <AlertTriangle size={15} />,
+      icon: <AlertTriangle size={14} />,
+    };
+  }
+
+  if (node.status === "INACTIVE") {
+    return {
+      label: "Inactive",
+      className: "inactive",
+      icon: <AlertTriangle size={14} />,
     };
   }
 
@@ -257,7 +268,7 @@ function getHealthStatus(node) {
     return {
       label: "Critical",
       className: "critical",
-      icon: <AlertTriangle size={15} />,
+      icon: <AlertTriangle size={14} />,
     };
   }
 
@@ -265,16 +276,17 @@ function getHealthStatus(node) {
     return {
       label: "Warning",
       className: "warning",
-      icon: <AlertTriangle size={15} />,
+      icon: <AlertTriangle size={14} />,
     };
   }
 
   return {
     label: "Healthy",
     className: "healthy",
-    icon: <CheckCircle2 size={15} />,
+    icon: <CheckCircle2 size={14} />,
   };
 }
+
 
 function calculateDistance(nodeA, nodeB) {
   const dx = nodeA.x - nodeB.x;
@@ -283,13 +295,11 @@ function calculateDistance(nodeA, nodeB) {
   return Math.sqrt(dx * dx + dy * dy);
 }
 
-/*
- * Finds a free location for a new node.
- *
- * The new node must:
- * 1. Stay inside the topology.
- * 2. Be at least MIN_NODE_DISTANCE away from every node.
- */
+
+/* ============================================================
+   SAFE NODE POSITION
+============================================================ */
+
 function findSafeNodePosition(existingNodes) {
   for (let attempt = 0; attempt < 500; attempt++) {
     const candidate = {
@@ -297,9 +307,11 @@ function findSafeNodePosition(existingNodes) {
       y: Math.random() * 78 + 10,
     };
 
-    const collision = existingNodes.some((node) => {
-      return calculateDistance(candidate, node) < MIN_NODE_DISTANCE;
-    });
+    const collision = existingNodes.some(
+      (node) =>
+        calculateDistance(candidate, node) <
+        MIN_NODE_DISTANCE
+    );
 
     if (!collision) {
       return candidate;
@@ -309,19 +321,22 @@ function findSafeNodePosition(existingNodes) {
   return null;
 }
 
-/*
- * ============================================================
- * COMPONENT
- * ============================================================
- */
+
+/* ============================================================
+   COMPONENT
+============================================================ */
 
 function Simulation() {
   const [isRunning, setIsRunning] = useState(true);
-  const [isDark, setIsDark] = useState(false);
-  const [nodes, setNodes] = useState(initialNodes);
 
-  const [showAddNode, setShowAddNode] = useState(false);
-  const [selectedNode, setSelectedNode] = useState(null);
+  const [nodes, setNodes] =
+    useState(initialNodes);
+
+  const [showAddNode, setShowAddNode] =
+    useState(false);
+
+  const [selectedNode, setSelectedNode] =
+    useState(null);
 
   const [newNode, setNewNode] = useState({
     nodeIdentifier: "",
@@ -332,26 +347,24 @@ function Simulation() {
     ipAddress: "",
   });
 
-  /*
-   * ==========================================================
-   * NODE MAP
-   * ==========================================================
-   */
+
+  /* ==========================================================
+     NODE MAP
+  ========================================================== */
 
   const nodeMap = useMemo(() => {
     return Object.fromEntries(
-      nodes.map((node) => [node.nodeIdentifier, node])
+      nodes.map((node) => [
+        node.nodeIdentifier,
+        node,
+      ])
     );
   }, [nodes]);
 
-  /*
-   * ==========================================================
-   * DYNAMIC CONNECTIONS
-   *
-   * Connections are generated according to physical distance.
-   * This makes the topology behave more like an actual MANET.
-   * ==========================================================
-   */
+
+  /* ==========================================================
+     DYNAMIC CONNECTIONS
+  ========================================================== */
 
   const connections = useMemo(() => {
     const links = [];
@@ -361,7 +374,8 @@ function Simulation() {
         const source = nodes[i];
         const target = nodes[j];
 
-        const distance = calculateDistance(source, target);
+        const distance =
+          calculateDistance(source, target);
 
         if (distance <= CONNECTION_RANGE) {
           links.push([
@@ -375,81 +389,105 @@ function Simulation() {
     return links;
   }, [nodes]);
 
-  /*
-   * ==========================================================
-   * NETWORK STATISTICS
-   * ==========================================================
-   */
+
+  /* ==========================================================
+     NETWORK STATISTICS
+  ========================================================== */
 
   const healthyNodes = nodes.filter(
-    (node) => getHealthStatus(node).className === "healthy"
+    (node) =>
+      getHealthStatus(node).className ===
+      "healthy"
   ).length;
 
-  const attentionNodes = nodes.filter((node) => {
-    const health = calculateNodeHealth(node);
-    return health < 70 && health > 0;
-  }).length;
+  const attentionNodes = nodes.filter(
+    (node) => {
+      const health =
+        calculateNodeHealth(node);
+
+      return health < 70 && health > 0;
+    }
+  ).length;
 
   const failedNodes = nodes.filter(
-    (node) => node.status === "FAILED"
+    (node) =>
+      node.status === "FAILED"
+  ).length;
+
+  const inactiveNodes = nodes.filter(
+    (node) =>
+      node.status === "INACTIVE"
   ).length;
 
   const networkHealth = useMemo(() => {
     if (!nodes.length) return 0;
 
     const total = nodes.reduce(
-      (sum, node) => sum + calculateNodeHealth(node),
+      (sum, node) =>
+        sum + calculateNodeHealth(node),
       0
     );
 
-    return Math.round(total / nodes.length);
+    return Math.round(
+      total / nodes.length
+    );
   }, [nodes]);
 
-  /*
-   * ==========================================================
-   * FORM HANDLER
-   * ==========================================================
-   */
+
+  /* ==========================================================
+     FORM HANDLER
+  ========================================================== */
 
   const handleNodeInput = (event) => {
-    const { name, value } = event.target;
+    const {
+      name,
+      value,
+    } = event.target;
 
     setNewNode((prev) => ({
       ...prev,
+
       [name]:
-        name === "batteryLevel" || name === "cpuUsage"
+        name === "batteryLevel" ||
+        name === "cpuUsage"
           ? Number(value)
           : value,
     }));
   };
 
-  /*
-   * ==========================================================
-   * ADD NODE
-   * ==========================================================
-   */
+
+  /* ==========================================================
+     ADD NODE
+  ========================================================== */
 
   const addNode = (event) => {
     event.preventDefault();
 
-    const identifier = newNode.nodeIdentifier.trim();
+    const identifier =
+      newNode.nodeIdentifier.trim();
 
     if (!identifier) {
-      alert("Please enter a node identifier.");
+      alert(
+        "Please enter a node identifier."
+      );
       return;
     }
 
     const duplicate = nodes.some(
       (node) =>
-        node.nodeIdentifier.toLowerCase() === identifier.toLowerCase()
+        node.nodeIdentifier.toLowerCase() ===
+        identifier.toLowerCase()
     );
 
     if (duplicate) {
-      alert("A node with this identifier already exists.");
+      alert(
+        "A node with this identifier already exists."
+      );
       return;
     }
 
-    const position = findSafeNodePosition(nodes);
+    const position =
+      findSafeNodePosition(nodes);
 
     if (!position) {
       alert(
@@ -467,13 +505,19 @@ function Simulation() {
       y: position.y,
       batteryLevel: newNode.batteryLevel,
       cpuUsage: newNode.cpuUsage,
+
       ipAddress:
         newNode.ipAddress.trim() ||
         `192.168.1.${100 + nodes.length + 1}`,
-      delay: `${(Math.random() * 3).toFixed(1)}s`,
+
+      delay:
+        `${(Math.random() * 3).toFixed(1)}s`,
     };
 
-    setNodes((prev) => [...prev, createdNode]);
+    setNodes((prev) => [
+      ...prev,
+      createdNode,
+    ]);
 
     setNewNode({
       nodeIdentifier: "",
@@ -487,482 +531,822 @@ function Simulation() {
     setShowAddNode(false);
   };
 
-  /*
-   * ==========================================================
-   * RESET
-   * ==========================================================
-   */
+
+  /* ==========================================================
+     RESET TOPOLOGY
+  ========================================================== */
 
   const resetTopology = () => {
     setNodes(initialNodes);
     setSelectedNode(null);
+    setIsRunning(true);
   };
 
-  /*
-   * ==========================================================
-   * SIDEBAR NAVIGATION
-   *
-   * Sidebar is responsible for navigating between:
-   * Dashboard
-   * Simulation
-   * Nodes
-   * Topology
-   * AI Analysis
-   * Recoverability
-   * Recovery Logs
-   * Settings
-   * ==========================================================
-   */
+
+  /* ==========================================================
+     RENDER
+  ========================================================== */
 
   return (
-    <div
-  className={`simulation-layout ${
-    isDark ? "dark-mode" : ""
-  }`}
->
-  <div className="simulation-sidebar-fixed">
-    <Sidebar activePage="simulation" />
-  </div>
+    <div className="simulation-layout">
 
-  <main className="simulation-page">
-        {/* =====================================================
+      {/* ======================================================
+          FLOATING SIDEBAR
+
+          Uses the same global Sidebar as the rest of NeuroHeal.
+          Only the Sidebar's configured pages are available.
+      ====================================================== */}
+
+      <Sidebar activePage="simulation" />
+
+
+      {/* ======================================================
+          MAIN CONTENT
+      ====================================================== */}
+
+      <main className="simulation-page">
+
+        {/* ====================================================
             HEADER
-        ====================================================== */}
+        ==================================================== */}
 
-        <div className="simulation-header">
-          <div>
+        <header className="simulation-header">
+
+          <div className="simulation-header-copy">
+
             <span className="simulation-eyebrow">
               SIMULATION ENVIRONMENT
             </span>
 
-            <h1>Virtual MANET Network</h1>
+            <h1>
+              Virtual MANET Network
+            </h1>
 
             <p>
-              Build, monitor and simulate a dynamic mobile ad-hoc
-              network in real time.
+              Build, monitor and simulate a
+              dynamic mobile ad-hoc network
+              in real time.
             </p>
+
           </div>
 
+
           <div className="simulation-actions">
-            <button
-              className="theme-button"
-              onClick={() => setIsDark((prev) => !prev)}
-              title="Toggle theme"
-            >
-              {isDark ? <Sun size={18} /> : <Moon size={18} />}
-            </button>
+
+            <div className="simulation-state">
+
+              <span
+                className={
+                  isRunning
+                    ? "state-dot active"
+                    : "state-dot paused"
+                }
+              />
+
+              <div>
+                <span>Simulation</span>
+
+                <strong>
+                  {isRunning
+                    ? "RUNNING"
+                    : "PAUSED"}
+                </strong>
+              </div>
+
+            </div>
+
 
             <button
               className={`simulation-control ${
                 isRunning ? "running" : ""
               }`}
-              onClick={() => setIsRunning((prev) => !prev)}
+              type="button"
+              onClick={() =>
+                setIsRunning(
+                  (prev) => !prev
+                )
+              }
             >
               {isRunning ? (
-                <Pause size={17} />
+                <Pause size={15} />
               ) : (
-                <Play size={17} />
+                <Play size={15} />
               )}
 
-              {isRunning ? "Running" : "Paused"}
+              {isRunning
+                ? "Pause"
+                : "Resume"}
             </button>
-          </div>
-        </div>
 
-        {/* =====================================================
-            STATS
-        ====================================================== */}
+          </div>
+
+        </header>
+
+
+        {/* ====================================================
+            STATISTICS
+        ==================================================== */}
 
         <section className="simulation-stats">
+
           <div className="simulation-stat-card">
+
             <div className="stat-icon">
-              <Network size={20} />
+              <Network size={18} />
             </div>
 
             <div>
               <span>Total Nodes</span>
-              <strong>{nodes.length}</strong>
+              <strong>
+                {nodes.length}
+              </strong>
             </div>
+
           </div>
 
+
           <div className="simulation-stat-card">
+
             <div className="stat-icon">
-              <Wifi size={20} />
+              <Wifi size={18} />
             </div>
 
             <div>
               <span>Active Links</span>
-              <strong>{connections.length}</strong>
+              <strong>
+                {connections.length}
+              </strong>
             </div>
+
           </div>
 
+
           <div className="simulation-stat-card">
+
             <div className="stat-icon">
-              <HeartPulse size={20} />
+              <HeartPulse size={18} />
             </div>
 
             <div>
               <span>Network Health</span>
-              <strong>{networkHealth}%</strong>
+              <strong>
+                {networkHealth}%
+              </strong>
             </div>
+
           </div>
 
+
           <div className="simulation-stat-card">
-            <div className="stat-icon warning">
-              <AlertTriangle size={20} />
+
+            <div className="stat-icon attention">
+              <AlertTriangle size={18} />
             </div>
 
             <div>
               <span>Attention</span>
-              <strong>{attentionNodes + failedNodes}</strong>
+
+              <strong>
+                {attentionNodes +
+                  failedNodes}
+              </strong>
             </div>
+
           </div>
+
         </section>
 
-        {/* =====================================================
+
+        {/* ====================================================
             TOPOLOGY
-        ====================================================== */}
+        ==================================================== */}
 
         <section className="topology-card">
+
           <div className="topology-header">
+
             <div>
+
               <span className="topology-label">
-                <Activity size={16} />
+                <Activity size={14} />
                 LIVE TOPOLOGY
               </span>
 
-              <h2>Virtual MANET Network</h2>
+              <h2>
+                Virtual MANET Network
+              </h2>
 
               <p>
-                Nodes automatically establish links when they are
-                within communication range.
+                Nodes establish connections
+                automatically according to
+                communication range.
               </p>
+
             </div>
 
+
             <div className="topology-actions">
+
               <span className="live-badge">
-                <span className="live-dot" />
-                {isRunning ? "LIVE" : "PAUSED"}
+
+                <span
+                  className={`live-dot ${
+                    isRunning
+                      ? "active"
+                      : "paused"
+                  }`}
+                />
+
+                {isRunning
+                  ? "LIVE"
+                  : "PAUSED"}
+
               </span>
+
 
               <button
                 className="add-node-button"
-                onClick={() => setShowAddNode(true)}
+                type="button"
+                onClick={() =>
+                  setShowAddNode(true)
+                }
               >
-                <MapPin size={16} />
+                <MapPin size={15} />
                 Add Node
               </button>
+
             </div>
+
           </div>
 
-          {/* ===================================================
+
+          {/* ==================================================
               NETWORK CANVAS
-          ==================================================== */}
+          ================================================== */}
 
           <div className="topology-scroll-container">
+
             <div className="network-topology">
+
+              {/* CONNECTIONS */}
+
               <svg
                 className="connection-layer"
                 viewBox="0 0 100 100"
                 preserveAspectRatio="none"
               >
-                {connections.map(([from, to], index) => {
-                  const source = nodeMap[from];
-                  const target = nodeMap[to];
 
-                  if (!source || !target) return null;
+                {connections.map(
+                  ([from, to], index) => {
 
-                  return (
-                    <line
-                      key={`${from}-${to}-${index}`}
-                      x1={source.x}
-                      y1={source.y}
-                      x2={target.x}
-                      y2={target.y}
-                      className="network-link"
-                    />
-                  );
-                })}
+                    const source =
+                      nodeMap[from];
+
+                    const target =
+                      nodeMap[to];
+
+                    if (
+                      !source ||
+                      !target
+                    ) {
+                      return null;
+                    }
+
+                    return (
+                      <line
+                        key={`${from}-${to}-${index}`}
+                        x1={source.x}
+                        y1={source.y}
+                        x2={target.x}
+                        y2={target.y}
+                        className="network-link"
+                      />
+                    );
+                  }
+                )}
+
               </svg>
+
 
               {/* CENTER */}
 
               <div className="network-center">
+
                 <div className="network-center-ring">
-                  <Network size={28} />
-                  <strong>MANET</strong>
-                  <small>{nodes.length} Nodes</small>
+
+                  <Network size={25} />
+
+                  <strong>
+                    MANET
+                  </strong>
+
+                  <small>
+                    {nodes.length} Nodes
+                  </small>
+
                 </div>
+
               </div>
+
 
               {/* NODES */}
 
               {nodes.map((node) => {
-                const healthStatus = getHealthStatus(node);
-                const health = calculateNodeHealth(node);
+
+                const healthStatus =
+                  getHealthStatus(node);
+
+                const health =
+                  calculateNodeHealth(node);
 
                 return (
+
                   <div
-                    key={node.nodeIdentifier}
+                    key={
+                      node.nodeIdentifier
+                    }
+
                     className={`network-node ${
                       healthStatus.className
-                    } ${isRunning ? "node-moving" : ""}`}
+                    } ${
+                      isRunning
+                        ? "node-moving"
+                        : ""
+                    }`}
+
                     style={{
                       left: `${node.x}%`,
                       top: `${node.y}%`,
-                      animationDelay: node.delay,
+                      animationDelay:
+                        node.delay,
                     }}
-                    onMouseEnter={() => setSelectedNode(node)}
-                    onMouseLeave={() => setSelectedNode(null)}
-                    onClick={() => setSelectedNode(node)}
+
+                    onMouseEnter={() =>
+                      setSelectedNode(
+                        node
+                      )
+                    }
+
+                    onMouseLeave={() =>
+                      setSelectedNode(
+                        null
+                      )
+                    }
+
+                    onClick={() =>
+                      setSelectedNode(
+                        node
+                      )
+                    }
                   >
+
                     <div className="node-label">
                       {node.nodeIdentifier}
                     </div>
 
+
                     <div className="node-body">
-                      <CircleDot size={20} />
+                      <CircleDot size={19} />
                     </div>
+
 
                     <span className="node-pulse" />
 
-                    {/* =================================================
-                        HEALTH TOOLTIP
-                    ================================================== */}
+
+                    {/* NODE TOOLTIP */}
 
                     {selectedNode?.nodeIdentifier ===
                       node.nodeIdentifier && (
+
                       <div className="node-health-tooltip">
+
                         <div className="tooltip-header">
+
                           <div>
                             <strong>
-                              {node.nodeIdentifier}
+                              {
+                                node.nodeIdentifier
+                              }
                             </strong>
 
                             <span>
-                              {node.nodeType ||
-                                "NETWORK NODE"}
+                              {
+                                node.nodeType ||
+                                "NETWORK NODE"
+                              }
                             </span>
                           </div>
 
+
                           <div
-                            className={`tooltip-status ${healthStatus.className}`}
+                            className={`tooltip-status ${
+                              healthStatus.className
+                            }`}
                           >
-                            {healthStatus.icon}
-                            {healthStatus.label}
+                            {
+                              healthStatus.icon
+                            }
+
+                            {
+                              healthStatus.label
+                            }
                           </div>
+
                         </div>
+
 
                         <div className="tooltip-health">
+
                           <div className="health-circle">
-                            <strong>{health}%</strong>
-                            <span>Health</span>
+
+                            <strong>
+                              {health}%
+                            </strong>
+
+                            <span>
+                              Health
+                            </span>
+
                           </div>
+
 
                           <div className="health-details">
+
                             <div>
-                              <Battery size={14} />
-                              <span>Battery</span>
+                              <Battery
+                                size={13}
+                              />
+
+                              <span>
+                                Battery
+                              </span>
+
                               <strong>
-                                {node.batteryLevel}%
+                                {
+                                  node.batteryLevel
+                                }%
                               </strong>
                             </div>
 
+
                             <div>
-                              <Cpu size={14} />
-                              <span>CPU</span>
+                              <Cpu size={13} />
+
+                              <span>
+                                CPU
+                              </span>
+
                               <strong>
-                                {node.cpuUsage}%
+                                {
+                                  node.cpuUsage
+                                }%
                               </strong>
                             </div>
 
+
                             <div>
-                              <Signal size={14} />
-                              <span>Status</span>
+                              <Signal size={13} />
+
+                              <span>
+                                Status
+                              </span>
+
                               <strong>
-                                {node.status}
+                                {
+                                  node.status
+                                }
                               </strong>
                             </div>
 
+
                             <div>
-                              <Wifi size={14} />
-                              <span>IP</span>
+                              <Wifi size={13} />
+
+                              <span>
+                                IP
+                              </span>
+
                               <strong>
-                                {node.ipAddress}
+                                {
+                                  node.ipAddress
+                                }
                               </strong>
                             </div>
+
                           </div>
+
                         </div>
+
                       </div>
                     )}
+
                   </div>
                 );
               })}
+
             </div>
+
           </div>
 
-          {/* =====================================================
-              FOOTER
-          ====================================================== */}
+
+          {/* ==================================================
+              TOPOLOGY FOOTER
+          ================================================== */}
 
           <div className="topology-footer">
+
             <div className="legend">
+
               <span>
                 <i className="legend-dot healthy-dot" />
-                Healthy Node
+                Healthy
               </span>
 
               <span>
                 <i className="legend-dot warning-dot" />
-                Attention Required
+                Attention
               </span>
 
               <span>
                 <i className="legend-dot failed-dot" />
-                Failed Node
+                Failed
               </span>
 
               <span>
                 <i className="legend-line" />
-                Active Connection
+                Connection
               </span>
+
             </div>
+
 
             <span className="node-count">
               Showing {nodes.length} network nodes
             </span>
+
           </div>
+
         </section>
 
-        {/* =====================================================
+
+        {/* ====================================================
             LOWER PANELS
-        ====================================================== */}
+        ==================================================== */}
 
         <section className="simulation-grid">
+
+          {/* ==================================================
+              SIMULATION CONTROL
+          ================================================== */}
+
           <div className="simulation-panel">
+
             <div className="panel-heading">
+
               <div>
-                <h3>Simulation Control</h3>
+                <h3>
+                  Simulation Control
+                </h3>
+
                 <p>
-                  Manage the virtual network environment.
+                  Manage the virtual network
+                  environment.
                 </p>
               </div>
 
-              <MonitorCog size={21} />
+              <MonitorCog size={19} />
+
             </div>
 
+
             <div className="control-list">
-              <button onClick={() => setIsRunning(true)}>
-                <Play size={17} />
+
+              <button
+                type="button"
+                className={
+                  isRunning
+                    ? "control-active"
+                    : ""
+                }
+                onClick={() =>
+                  setIsRunning(true)
+                }
+              >
+                <Play size={15} />
                 Start Simulation
               </button>
 
-              <button onClick={() => setIsRunning(false)}>
-                <Pause size={17} />
+
+              <button
+                type="button"
+                className={
+                  !isRunning
+                    ? "control-active"
+                    : ""
+                }
+                onClick={() =>
+                  setIsRunning(false)
+                }
+              >
+                <Pause size={15} />
                 Pause Network
               </button>
 
-              <button onClick={resetTopology}>
-                <RefreshCw size={17} />
+
+              <button
+                type="button"
+                onClick={resetTopology}
+              >
+                <RefreshCw size={15} />
                 Reset Topology
               </button>
 
-              <button onClick={() => setShowAddNode(true)}>
-                <MapPin size={17} />
+
+              <button
+                type="button"
+                onClick={() =>
+                  setShowAddNode(true)
+                }
+              >
+                <MapPin size={15} />
                 Add Network Node
               </button>
+
             </div>
+
           </div>
 
+
+          {/* ==================================================
+              NETWORK INTELLIGENCE
+          ================================================== */}
+
           <div className="simulation-panel">
+
             <div className="panel-heading">
+
               <div>
-                <h3>Network Intelligence</h3>
+                <h3>
+                  Network Intelligence
+                </h3>
+
                 <p>
-                  Current AI-assisted network analysis.
+                  Current network state derived
+                  from the simulation.
                 </p>
               </div>
 
-              <BrainCircuit size={21} />
+              <BrainCircuit size={19} />
+
             </div>
 
+
             <div className="intelligence-list">
+
               <div>
-                <span>Topology Stability</span>
+                <span>
+                  Topology Stability
+                </span>
 
                 <strong>
                   {networkHealth >= 80
                     ? "High"
                     : networkHealth >= 60
-                    ? "Medium"
+                    ? "Moderate"
                     : "Low"}
                 </strong>
               </div>
 
-              <div>
-                <span>Healthy Nodes</span>
-                <strong>{healthyNodes}</strong>
-              </div>
 
               <div>
-                <span>Nodes Requiring Attention</span>
-                <strong>{attentionNodes}</strong>
+                <span>
+                  Healthy Nodes
+                </span>
+
+                <strong>
+                  {healthyNodes}
+                </strong>
               </div>
 
-              <div>
-                <span>Failed Nodes</span>
-                <strong>{failedNodes}</strong>
-              </div>
 
               <div>
-                <span>Active Connections</span>
-                <strong>{connections.length}</strong>
+                <span>
+                  Nodes Requiring Attention
+                </span>
+
+                <strong>
+                  {attentionNodes}
+                </strong>
               </div>
+
+
+              <div>
+                <span>
+                  Failed Nodes
+                </span>
+
+                <strong className="danger-value">
+                  {failedNodes}
+                </strong>
+              </div>
+
+
+              <div>
+                <span>
+                  Inactive Nodes
+                </span>
+
+                <strong>
+                  {inactiveNodes}
+                </strong>
+              </div>
+
+
+              <div>
+                <span>
+                  Active Connections
+                </span>
+
+                <strong>
+                  {connections.length}
+                </strong>
+              </div>
+
             </div>
+
           </div>
+
         </section>
+
       </main>
 
-      {/* =======================================================
+
+      {/* ======================================================
           ADD NODE MODAL
-      ======================================================== */}
+      ====================================================== */}
 
       {showAddNode && (
+
         <div
           className="node-modal-overlay"
-          onClick={() => setShowAddNode(false)}
+          onClick={() =>
+            setShowAddNode(false)
+          }
         >
+
           <div
             className="node-modal"
-            onClick={(event) => event.stopPropagation()}
+            onClick={(event) =>
+              event.stopPropagation()
+            }
           >
+
+            {/* MODAL HEADER */}
+
             <div className="node-modal-header">
+
               <div>
+
                 <span className="simulation-eyebrow">
                   NODE CONFIGURATION
                 </span>
 
-                <h2>Add New Network Node</h2>
+                <h2>
+                  Add New Network Node
+                </h2>
 
                 <p>
-                  Enter the node information stored by the
-                  MANET backend.
+                  Enter the node information
+                  used by the MANET simulation.
                 </p>
+
               </div>
 
+
               <button
+                type="button"
                 className="modal-close"
-                onClick={() => setShowAddNode(false)}
+                onClick={() =>
+                  setShowAddNode(false)
+                }
+                aria-label="Close"
               >
-                <X size={20} />
+                <X size={18} />
               </button>
+
             </div>
 
+
+            {/* FORM */}
+
             <form onSubmit={addNode}>
+
               <div className="node-form-grid">
+
                 {/* NODE IDENTIFIER */}
 
                 <div className="form-group">
+
                   <label>
                     Node Identifier
                     <span>*</span>
@@ -971,142 +1355,224 @@ function Simulation() {
                   <input
                     type="text"
                     name="nodeIdentifier"
-                    value={newNode.nodeIdentifier}
-                    onChange={handleNodeInput}
+                    value={
+                      newNode.nodeIdentifier
+                    }
+                    onChange={
+                      handleNodeInput
+                    }
                     placeholder="Example: N16"
                     required
                   />
 
                   <small>
-                    Unique identifier for this network node.
+                    Unique identifier for
+                    this network node.
                   </small>
+
                 </div>
+
 
                 {/* NODE TYPE */}
 
                 <div className="form-group">
-                  <label>Node Type</label>
+
+                  <label>
+                    Node Type
+                  </label>
 
                   <select
                     name="nodeType"
-                    value={newNode.nodeType}
-                    onChange={handleNodeInput}
+                    value={
+                      newNode.nodeType
+                    }
+                    onChange={
+                      handleNodeInput
+                    }
                   >
-                    <option value="ROUTER">Router</option>
+                    <option value="ROUTER">
+                      Router
+                    </option>
+
                     <option value="END_DEVICE">
                       End Device
                     </option>
-                    <option value="GATEWAY">Gateway</option>
-                    <option value="SENSOR">Sensor</option>
+
+                    <option value="GATEWAY">
+                      Gateway
+                    </option>
+
+                    <option value="SENSOR">
+                      Sensor
+                    </option>
+
                     <option value="MOBILE_NODE">
                       Mobile Node
                     </option>
                   </select>
+
                 </div>
+
 
                 {/* STATUS */}
 
                 <div className="form-group">
-                  <label>Status</label>
+
+                  <label>
+                    Status
+                  </label>
 
                   <select
                     name="status"
-                    value={newNode.status}
-                    onChange={handleNodeInput}
+                    value={
+                      newNode.status
+                    }
+                    onChange={
+                      handleNodeInput
+                    }
                   >
-                    <option value="ACTIVE">Active</option>
-                    <option value="INACTIVE">Inactive</option>
-                    <option value="FAILED">Failed</option>
+                    <option value="ACTIVE">
+                      Active
+                    </option>
+
+                    <option value="INACTIVE">
+                      Inactive
+                    </option>
+
+                    <option value="FAILED">
+                      Failed
+                    </option>
                   </select>
+
                 </div>
+
 
                 {/* BATTERY */}
 
                 <div className="form-group">
+
                   <label>
                     Battery Level
                     <span>*</span>
                   </label>
 
                   <div className="input-with-unit">
+
                     <input
                       type="number"
                       name="batteryLevel"
                       min="0"
                       max="100"
-                      value={newNode.batteryLevel}
-                      onChange={handleNodeInput}
+                      value={
+                        newNode.batteryLevel
+                      }
+                      onChange={
+                        handleNodeInput
+                      }
                       required
                     />
 
                     <span>%</span>
+
                   </div>
+
                 </div>
+
 
                 {/* CPU */}
 
                 <div className="form-group">
+
                   <label>
                     CPU Usage
                     <span>*</span>
                   </label>
 
                   <div className="input-with-unit">
+
                     <input
                       type="number"
                       name="cpuUsage"
                       min="0"
                       max="100"
-                      value={newNode.cpuUsage}
-                      onChange={handleNodeInput}
+                      value={
+                        newNode.cpuUsage
+                      }
+                      onChange={
+                        handleNodeInput
+                      }
                       required
                     />
 
                     <span>%</span>
+
                   </div>
+
                 </div>
 
-                {/* IP */}
+
+                {/* IP ADDRESS */}
 
                 <div className="form-group">
-                  <label>IP Address</label>
+
+                  <label>
+                    IP Address
+                  </label>
 
                   <input
                     type="text"
                     name="ipAddress"
-                    value={newNode.ipAddress}
-                    onChange={handleNodeInput}
+                    value={
+                      newNode.ipAddress
+                    }
+                    onChange={
+                      handleNodeInput
+                    }
                     placeholder="192.168.1.116"
                   />
+
                 </div>
+
               </div>
+
 
               {/* POSITION INFORMATION */}
 
               <div className="position-info">
-                <Info size={17} />
+
+                <Info size={16} />
 
                 <div>
-                  <strong>Automatic Positioning</strong>
+
+                  <strong>
+                    Automatic Positioning
+                  </strong>
 
                   <p>
-                    The simulation automatically places the node
-                    at a safe position. New nodes cannot overlap
-                    or collide with existing nodes.
+                    The simulator automatically
+                    places the new node in a
+                    collision-free position.
                   </p>
+
                 </div>
+
               </div>
 
-              {/* FORM ACTIONS */}
+
+              {/* MODAL ACTIONS */}
 
               <div className="node-modal-actions">
+
                 <button
                   type="button"
                   className="cancel-button"
-                  onClick={() => setShowAddNode(false)}
+                  onClick={() =>
+                    setShowAddNode(false)
+                  }
                 >
                   Cancel
                 </button>
+
 
                 <button
                   type="submit"
@@ -1115,35 +1581,44 @@ function Simulation() {
                   <PlusIcon />
                   Create Node
                 </button>
+
               </div>
+
             </form>
+
           </div>
+
         </div>
+
       )}
+
     </div>
   );
 }
 
-/*
- * Small local icon component so the main import list stays clean.
- */
+
+/* ============================================================
+   PLUS ICON
+============================================================ */
 
 function PlusIcon() {
   return (
     <svg
-      width="17"
-      height="17"
+      width="16"
+      height="16"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
+      aria-hidden="true"
     >
       <path d="M12 5v14" />
       <path d="M5 12h14" />
     </svg>
   );
 }
+
 
 export default Simulation;
