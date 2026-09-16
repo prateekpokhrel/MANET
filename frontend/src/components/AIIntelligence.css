@@ -185,23 +185,74 @@
   box-shadow: 0 0 9px rgba(74, 222, 128, 0.5);
 }
 
-.model-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.model-card {
-  padding: 15px;
+.model-architecture {
+  position: relative;
+  min-height: 560px;
+  overflow: hidden;
   border: 1px solid #202731;
-  border-radius: 7px;
-  background: #0d1218;
-  transition: 0.2s ease;
+  border-radius: 8px;
+  background: #0b1016;
+  padding: 38px 5%;
+  display: grid;
+  grid-template-columns: minmax(250px, 1fr) minmax(250px, 0.8fr) minmax(250px, 1fr);
+  grid-template-rows: 1fr 150px 1fr;
+  column-gap: 8%;
+  row-gap: 35px;
+  align-items: center;
 }
 
-.model-card:hover {
-  border-color: #303b47;
-  background: #10161d;
+.model-architecture-lines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.model-architecture-lines line {
+  stroke: #3b4652;
+  stroke-width: 1.5;
+  stroke-dasharray: 7 7;
+  opacity: 0.8;
+}
+
+.model-node {
+  position: relative;
+  width: 100%;
+  min-height: 150px;
+  padding: 15px;
+  border: 1px solid #27313b;
+  border-radius: 8px;
+  background: #0f151c;
+  transition: 0.2s ease;
+  z-index: 2;
+}
+
+.model-node:hover {
+  border-color: #465463;
+  background: #121921;
+  transform: translateY(-2px);
+}
+
+.model-node-random {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.model-node-xgboost {
+  grid-column: 3;
+  grid-row: 1;
+}
+
+.model-node-lstm {
+  grid-column: 1;
+  grid-row: 3;
+}
+
+.model-node-isolation {
+  grid-column: 3;
+  grid-row: 3;
 }
 
 .model-card-top {
@@ -218,6 +269,7 @@
   justify-content: center;
   width: 36px;
   height: 36px;
+  flex-shrink: 0;
   border: 1px solid #29323d;
   border-radius: 7px;
   background: #151b23;
@@ -238,6 +290,7 @@
   height: 5px;
   border-radius: 50%;
   background: #4ade80;
+  box-shadow: 0 0 7px rgba(74, 222, 128, 0.45);
 }
 
 .model-name {
@@ -281,6 +334,87 @@
   color: #aeb8c1;
   font-family: monospace;
   font-size: 10px;
+}
+
+.recovery-engine-node {
+  position: relative;
+  grid-column: 2;
+  grid-row: 2;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 120px;
+  padding: 17px;
+  border: 1px solid #465362;
+  border-radius: 9px;
+  background: #151c24;
+  box-shadow:
+    0 0 0 1px rgba(112, 132, 151, 0.08),
+    0 12px 35px rgba(0, 0, 0, 0.22);
+  transform: none;
+  z-index: 3;
+}
+
+.recovery-engine-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 43px;
+  height: 43px;
+  flex-shrink: 0;
+  border: 1px solid #536272;
+  border-radius: 8px;
+  background: #1a232d;
+  color: #a8b8c8;
+}
+
+.recovery-engine-content {
+  min-width: 0;
+}
+
+.recovery-engine-content span {
+  display: block;
+  margin-bottom: 5px;
+  color: #687786;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+}
+
+.recovery-engine-content strong {
+  display: block;
+  margin-bottom: 5px;
+  color: #e5e9ed;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.recovery-engine-content p {
+  margin: 0;
+  color: #687482;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.recovery-engine-status {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #4ade80;
+  font-size: 8px;
+  font-weight: 600;
+}
+
+.recovery-engine-status span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #4ade80;
+  box-shadow: 0 0 7px rgba(74, 222, 128, 0.45);
 }
 
 .ai-main-grid {
@@ -515,6 +649,7 @@
 }
 
 .node-ring {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -651,6 +786,10 @@
   background: #0d1218;
   color: #89949f;
   font-size: 9px;
+}
+
+.model-filter:focus {
+  border-color: #3a4652;
 }
 
 .prediction-list {
@@ -816,8 +955,14 @@
     grid-template-columns: repeat(2, 1fr);
   }
 
-  .model-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .model-architecture {
+    grid-template-columns:
+      minmax(220px, 1fr)
+      minmax(220px, 0.8fr)
+      minmax(220px, 1fr);
+    column-gap: 5%;
+    padding-left: 3%;
+    padding-right: 3%;
   }
 
   .ai-main-grid {
@@ -829,11 +974,51 @@
   }
 }
 
-@media (max-width: 850px) {
+@media (max-width: 900px) {
   .ai-main {
     margin-left: 84px;
     width: calc(100% - 84px);
     padding: 25px 20px 40px;
+  }
+
+  .model-architecture {
+    min-height: 620px;
+    grid-template-columns: minmax(200px, 1fr) minmax(200px, 1fr);
+    grid-template-rows: 1fr 140px 1fr;
+    column-gap: 18px;
+    row-gap: 30px;
+    padding: 30px 20px;
+  }
+
+  .model-node {
+    min-width: 0;
+  }
+
+  .model-node-random {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .model-node-xgboost {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .recovery-engine-node {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    width: 55%;
+    justify-self: center;
+  }
+
+  .model-node-lstm {
+    grid-column: 1;
+    grid-row: 3;
+  }
+
+  .model-node-isolation {
+    grid-column: 2;
+    grid-row: 3;
   }
 
   .ai-header {
@@ -856,6 +1041,48 @@
   }
 }
 
+@media (max-width: 700px) {
+  .model-architecture {
+    min-height: 660px;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 130px 1fr;
+    padding: 25px 15px;
+    column-gap: 12px;
+    row-gap: 28px;
+  }
+
+  .model-node {
+    min-height: 150px;
+    padding: 13px;
+  }
+
+  .model-name strong {
+    font-size: 11px;
+  }
+
+  .model-name span {
+    font-size: 8px;
+  }
+
+  .model-metrics strong {
+    font-size: 9px;
+  }
+
+  .recovery-engine-node {
+    width: 75%;
+    min-height: 115px;
+    padding: 14px;
+  }
+
+  .recovery-engine-content strong {
+    font-size: 12px;
+  }
+
+  .recovery-engine-content p {
+    font-size: 8px;
+  }
+}
+
 @media (max-width: 600px) {
   .ai-main {
     margin-left: 0;
@@ -864,10 +1091,6 @@
   }
 
   .ai-overview-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .model-grid {
     grid-template-columns: 1fr;
   }
 
@@ -884,6 +1107,47 @@
 
   .ai-live-status {
     align-self: flex-start;
+  }
+
+  .model-architecture {
+    min-height: auto;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .model-architecture-lines {
+    display: none;
+  }
+
+  .model-node,
+  .recovery-engine-node {
+    position: relative;
+    inset: auto;
+    width: 100%;
+    min-height: 0;
+    transform: none;
+  }
+
+  .model-node-random {
+    order: 1;
+  }
+
+  .model-node-xgboost {
+    order: 2;
+  }
+
+  .recovery-engine-node {
+    order: 3;
+  }
+
+  .model-node-lstm {
+    order: 4;
+  }
+
+  .model-node-isolation {
+    order: 5;
   }
 
   .node-ai-metrics {

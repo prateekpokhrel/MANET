@@ -54,7 +54,7 @@ function Sidebar() {
         </div>
 
         <div className="sidebar-brand-text">
-          <h2>Virtual MANET</h2>
+          <h2>NeuroHeal</h2>
           <span>AI Operations</span>
         </div>
       </div>

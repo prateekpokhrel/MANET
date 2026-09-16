@@ -8,6 +8,7 @@ import {
   Cpu,
   Database,
   Gauge,
+  GitBranch,
   Network,
   RefreshCw,
   ShieldCheck,
@@ -303,47 +304,178 @@ function AIIntelligence() {
             </span>
           </div>
 
-          <div className="model-grid">
-            {models.map((model) => {
-              const Icon = model.icon;
+          <div className="model-architecture">
+            <svg
+              className="model-architecture-lines"
+              viewBox="0 0 1000 520"
+              preserveAspectRatio="none"
+              aria-hidden="true"
+            >
+              <line x1="245" y1="135" x2="430" y2="245" />
+              <line x1="755" y1="135" x2="570" y2="245" />
+              <line x1="245" y1="385" x2="430" y2="275" />
+              <line x1="755" y1="385" x2="570" y2="275" />
+            </svg>
 
-              return (
-                <div className="model-card" key={model.name}>
-                  <div className="model-card-top">
-                    <div className="model-icon">
-                      <Icon size={20} />
-                    </div>
-
-                    <span className="model-status">
-                      <span />
-                      {model.status}
-                    </span>
-                  </div>
-
-                  <div className="model-name">
-                    <strong>{model.name}</strong>
-                    <span>{model.type}</span>
-                  </div>
-
-                  <div className="model-metrics">
-                    <div>
-                      <span>Accuracy</span>
-                      <strong>{model.accuracy}</strong>
-                    </div>
-
-                    <div>
-                      <span>Latency</span>
-                      <strong>{model.latency}</strong>
-                    </div>
-
-                    <div>
-                      <span>Predictions</span>
-                      <strong>{model.predictions}</strong>
-                    </div>
-                  </div>
+            <div className="model-node model-node-random">
+              <div className="model-card-top">
+                <div className="model-icon">
+                  <Brain size={20} />
                 </div>
-              );
-            })}
+
+                <span className="model-status">
+                  <span />
+                  Active
+                </span>
+              </div>
+
+              <div className="model-name">
+                <strong>Random Forest</strong>
+                <span>Node Health Prediction</span>
+              </div>
+
+              <div className="model-metrics">
+                <div>
+                  <span>Accuracy</span>
+                  <strong>94.7%</strong>
+                </div>
+
+                <div>
+                  <span>Latency</span>
+                  <strong>18 ms</strong>
+                </div>
+
+                <div>
+                  <span>Predictions</span>
+                  <strong>1,284</strong>
+                </div>
+              </div>
+            </div>
+
+            <div className="model-node model-node-xgboost">
+              <div className="model-card-top">
+                <div className="model-icon">
+                  <ShieldCheck size={20} />
+                </div>
+
+                <span className="model-status">
+                  <span />
+                  Active
+                </span>
+              </div>
+
+              <div className="model-name">
+                <strong>XGBoost</strong>
+                <span>Fault Classification</span>
+              </div>
+
+              <div className="model-metrics">
+                <div>
+                  <span>Accuracy</span>
+                  <strong>96.2%</strong>
+                </div>
+
+                <div>
+                  <span>Latency</span>
+                  <strong>12 ms</strong>
+                </div>
+
+                <div>
+                  <span>Predictions</span>
+                  <strong>1,109</strong>
+                </div>
+              </div>
+            </div>
+
+            <div className="recovery-engine-node">
+              <div className="recovery-engine-icon">
+                <GitBranch size={23} />
+              </div>
+
+              <div className="recovery-engine-content">
+                <span>DECISION ENGINE</span>
+                <strong>Recovery Engine</strong>
+                <p>
+                  Combines AI predictions to select the appropriate recovery
+                  action.
+                </p>
+              </div>
+
+              <div className="recovery-engine-status">
+                <span />
+                Operational
+              </div>
+            </div>
+
+            <div className="model-node model-node-lstm">
+              <div className="model-card-top">
+                <div className="model-icon">
+                  <TrendingUp size={20} />
+                </div>
+
+                <span className="model-status">
+                  <span />
+                  Active
+                </span>
+              </div>
+
+              <div className="model-name">
+                <strong>LSTM</strong>
+                <span>Link Quality Forecast</span>
+              </div>
+
+              <div className="model-metrics">
+                <div>
+                  <span>Accuracy</span>
+                  <strong>92.8%</strong>
+                </div>
+
+                <div>
+                  <span>Latency</span>
+                  <strong>27 ms</strong>
+                </div>
+
+                <div>
+                  <span>Predictions</span>
+                  <strong>864</strong>
+                </div>
+              </div>
+            </div>
+
+            <div className="model-node model-node-isolation">
+              <div className="model-card-top">
+                <div className="model-icon">
+                  <Activity size={20} />
+                </div>
+
+                <span className="model-status">
+                  <span />
+                  Active
+                </span>
+              </div>
+
+              <div className="model-name">
+                <strong>Isolation Forest</strong>
+                <span>Anomaly Detection</span>
+              </div>
+
+              <div className="model-metrics">
+                <div>
+                  <span>Accuracy</span>
+                  <strong>91.5%</strong>
+                </div>
+
+                <div>
+                  <span>Latency</span>
+                  <strong>9 ms</strong>
+                </div>
+
+                <div>
+                  <span>Predictions</span>
+                  <strong>742</strong>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -392,6 +524,7 @@ function AIIntelligence() {
                       <td>
                         <div className="health-cell">
                           <span>{node.health}%</span>
+
                           <div className="health-track">
                             <div
                               className={`health-fill ${
@@ -526,6 +659,7 @@ function AIIntelligence() {
                 className="model-filter"
               >
                 <option value="All">All Models</option>
+
                 {models.map((model) => (
                   <option key={model.name} value={model.name}>
                     {model.name}
@@ -536,7 +670,10 @@ function AIIntelligence() {
 
             <div className="prediction-list">
               {filteredPredictions.map((prediction) => (
-                <div className="prediction-row" key={prediction.time}>
+                <div
+                  className="prediction-row"
+                  key={`${prediction.time}-${prediction.model}`}
+                >
                   <div className="prediction-time">
                     <Clock3 size={13} />
                     {prediction.time}

@@ -111,26 +111,34 @@ const recoveryHistory = [
   },
 ];
 
-const flowSteps = [
+const aiModels = [
   {
-    title: "Fault Detected",
-    description: "Network anomaly identified",
-    icon: AlertOctagon,
-  },
-  {
-    title: "AI Analysis",
-    description: "Random Forest / XGBoost",
+    title: "Random Forest",
+    description: "Node health prediction",
+    metric: "94.7% accuracy",
     icon: Cpu,
+    position: "top-left",
   },
   {
-    title: "Recovery Decision",
-    description: "Best recovery action selected",
-    icon: GitBranch,
-  },
-  {
-    title: "Self-Healing",
-    description: "Network automatically restored",
+    title: "XGBoost",
+    description: "Fault classification",
+    metric: "96.2% accuracy",
     icon: ShieldCheck,
+    position: "top-right",
+  },
+  {
+    title: "LSTM",
+    description: "Link quality forecast",
+    metric: "92.8% accuracy",
+    icon: Activity,
+    position: "bottom-left",
+  },
+  {
+    title: "Isolation Forest",
+    description: "Anomaly detection",
+    metric: "91.5% accuracy",
+    icon: Zap,
+    position: "bottom-right",
   },
 ];
 
@@ -282,39 +290,55 @@ function FaultRecovery() {
         <section className="recovery-flow-panel">
           <div className="section-heading">
             <div>
-              <span className="section-label">AUTOMATED RESPONSE</span>
-              <h2>Self-Healing Flow</h2>
+              <span className="section-label">MODEL REGISTRY</span>
+              <h2>AI Models</h2>
             </div>
             <span className="live-indicator">
               <span />
-              LIVE
+              ALL SYSTEMS ACTIVE
             </span>
           </div>
 
-          <div className="recovery-flow">
-            {flowSteps.map((step, index) => {
-              const Icon = step.icon;
+          <div className="ai-model-architecture">
+            <div className="architecture-line line-top-left" />
+            <div className="architecture-line line-top-right" />
+            <div className="architecture-line line-bottom-left" />
+            <div className="architecture-line line-bottom-right" />
+
+            {aiModels.map((model) => {
+              const Icon = model.icon;
 
               return (
-                <React.Fragment key={step.title}>
-                  <div className="flow-step">
-                    <div className="flow-icon">
-                      <Icon size={21} />
-                    </div>
-                    <div>
-                      <strong>{step.title}</strong>
-                      <span>{step.description}</span>
-                    </div>
+                <div
+                  className={`ai-model-card ${model.position}`}
+                  key={model.title}
+                >
+                  <div className="ai-model-icon">
+                    <Icon size={20} />
                   </div>
 
-                  {index < flowSteps.length - 1 && (
-                    <div className="flow-arrow">
-                      <GitBranch size={18} />
-                    </div>
-                  )}
-                </React.Fragment>
+                  <div className="ai-model-content">
+                    <strong>{model.title}</strong>
+                    <span>{model.description}</span>
+                    <small>{model.metric}</small>
+                  </div>
+
+                  <div className="model-active">
+                    <span />
+                    Active
+                  </div>
+                </div>
               );
             })}
+
+            <div className="recovery-engine">
+              <div className="recovery-engine-icon">
+                <GitBranch size={24} />
+              </div>
+              <strong>Recovery Engine</strong>
+              <span>Recovery decision & action</span>
+              <small>Self-Healing Controller</small>
+            </div>
           </div>
         </section>
 
