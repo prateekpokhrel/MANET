@@ -1,0 +1,14 @@
+{
+    "sequence_length": 5,
+    "features": [
+        "rssi",
+        "packet_loss",
+        "latency",
+        "throughput",
+        "link_quality",
+        "node_distance",
+        "mobility_speed"
+    ],
+    "failure_label_type": "link_quality_proxy",
+    "failure_quality_threshold": 0.05
+}
