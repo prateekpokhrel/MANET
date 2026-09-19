@@ -6,7 +6,10 @@ import com.manet.backend.model.SimulatedNode;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -19,108 +22,155 @@ public class FaultInjector {
     private final List<SimulatedFault> activeFaults =
             new ArrayList<>();
 
-    public void applyScenario(
+    public synchronized void applyScenario(
             NetworkState state,
             FaultScenarioParameters parameters
     ) {
 
+        if (state == null || parameters == null) {
+            return;
+        }
+
         long currentTime =
                 state.getCurrentTime();
 
-        if (currentTime < parameters.getStartTime()) {
+        long startTime =
+                parameters.getStartTime();
+
+        long duration =
+                parameters.getDuration();
+
+        if (currentTime < startTime) {
             return;
         }
 
         long elapsed =
-                currentTime - parameters.getStartTime();
+                currentTime - startTime;
 
-        if (elapsed > parameters.getDuration()) {
-            return;
-        }
+        if (elapsed > duration) {
 
-        if (hasScenarioFault(
-                parameters.getScenario()
-        )) {
+            if (parameters.isAutomaticRecovery()) {
+
+                recoverScenario(
+                        state,
+                        parameters.getScenario()
+                );
+            }
+
             return;
         }
 
         switch (parameters.getScenario()) {
 
             case NODE_FAILURE_SCENARIO:
-                injectNodeFault(
+
+                injectNodeFaults(
                         state,
-                        FaultType.NODE_FAILURE
+                        FaultType.NODE_FAILURE,
+                        parameters.getNumberOfFaults()
                 );
+
                 break;
 
             case LINK_FAILURE_SCENARIO:
-                injectLinkFault(
+
+                injectLinkFaults(
                         state,
-                        FaultType.LINK_FAILURE
+                        FaultType.LINK_FAILURE,
+                        parameters.getNumberOfFaults()
                 );
+
                 break;
 
             case BATTERY_DEGRADATION_SCENARIO:
-                applyBatteryDegradation(
+
+                injectBatteryDegradationFaults(
                         state,
-                        parameters.getIntensity()
+                        parameters.getIntensity(),
+                        parameters.getNumberOfFaults()
                 );
+
                 break;
 
             case CPU_OVERLOAD_SCENARIO:
-                applyCpuOverload(
+
+                injectCpuOverloadFaults(
                         state,
-                        parameters.getIntensity()
+                        parameters.getIntensity(),
+                        parameters.getNumberOfFaults()
                 );
+
                 break;
 
             case PACKET_LOSS_SCENARIO:
-                injectLinkFault(
+
+                injectLinkFaults(
                         state,
-                        FaultType.HIGH_PACKET_LOSS
+                        FaultType.HIGH_PACKET_LOSS,
+                        parameters.getNumberOfFaults()
                 );
+
                 break;
 
             case HIGH_LATENCY_SCENARIO:
-                injectLinkFault(
+
+                injectLinkFaults(
                         state,
-                        FaultType.HIGH_LATENCY
+                        FaultType.HIGH_LATENCY,
+                        parameters.getNumberOfFaults()
                 );
+
                 break;
 
             case NETWORK_CONGESTION_SCENARIO:
-                injectLinkFault(
+
+                injectLinkFaults(
                         state,
-                        FaultType.CHANNEL_CONGESTION
+                        FaultType.CHANNEL_CONGESTION,
+                        parameters.getNumberOfFaults()
                 );
+
                 break;
 
             case RADIO_INTERFERENCE_SCENARIO:
-                injectLinkFault(
+
+                injectLinkFaults(
                         state,
-                        FaultType.RADIO_INTERFERENCE
+                        FaultType.RADIO_INTERFERENCE,
+                        parameters.getNumberOfFaults()
                 );
+
                 break;
 
             case ROUTE_FAILURE_SCENARIO:
-                injectLinkFault(
+
+                injectLinkFaults(
                         state,
-                        FaultType.ROUTE_FAILURE
+                        FaultType.ROUTE_FAILURE,
+                        parameters.getNumberOfFaults()
                 );
+
                 break;
 
             case NETWORK_PARTITION_SCENARIO:
-                createNetworkPartition(state);
+
+                createNetworkPartition(
+                        state
+                );
+
                 break;
 
             case MULTI_FAULT_SCENARIO:
+
                 applyMultiFaultScenario(
                         state,
                         parameters
                 );
+
                 break;
 
             case NONE:
+
                 break;
         }
     }
@@ -144,6 +194,13 @@ public class FaultInjector {
             SimulatedFault fault,
             FaultScenario scenario
     ) {
+
+        if (fault == null
+                || fault.getFaultType() == null
+                || scenario == null) {
+
+            return false;
+        }
 
         return switch (scenario) {
 
@@ -193,22 +250,360 @@ public class FaultInjector {
                             || fault.getFaultType()
                             == FaultType.HIGH_PACKET_LOSS
                             || fault.getFaultType()
-                            == FaultType.HIGH_LATENCY;
+                            == FaultType.HIGH_LATENCY
+                            || fault.getFaultType()
+                            == FaultType.LOW_BATTERY;
 
-            case NONE -> false;
+            case NONE ->
+                    false;
         };
     }
 
-    public SimulatedFault injectNodeFault(
+    private void injectNodeFaults(
+            NetworkState state,
+            FaultType faultType,
+            int numberOfFaults
+    ) {
+
+        int required =
+                normalizeFaultCount(
+                        numberOfFaults
+                );
+
+        int existing =
+                countActiveNodeFaults(
+                        faultType
+                );
+
+        int missing =
+                Math.max(
+                        0,
+                        required - existing
+                );
+
+        if (missing == 0) {
+            return;
+        }
+
+        List<SimulatedNode> availableNodes =
+                getAvailableNodes(
+                        state,
+                        faultType
+                );
+
+        Collections.shuffle(
+                availableNodes
+        );
+
+        int count =
+                Math.min(
+                        missing,
+                        availableNodes.size()
+                );
+
+        for (int i = 0; i < count; i++) {
+
+            SimulatedNode node =
+                    availableNodes.get(i);
+
+            applyNodeFault(
+                    node,
+                    faultType
+            );
+
+            createNodeFaultRecord(
+                    state,
+                    node,
+                    faultType
+            );
+        }
+    }
+
+    private void injectBatteryDegradationFaults(
+            NetworkState state,
+            double intensity,
+            int numberOfFaults
+    ) {
+
+        int required =
+                normalizeFaultCount(
+                        numberOfFaults
+                );
+
+        int existing =
+                countActiveNodeFaults(
+                        FaultType.LOW_BATTERY
+                );
+
+        int missing =
+                Math.max(
+                        0,
+                        required - existing
+                );
+
+        if (missing > 0) {
+
+            List<SimulatedNode> availableNodes =
+                    getAvailableNodes(
+                            state,
+                            FaultType.LOW_BATTERY
+                    );
+
+            Collections.shuffle(
+                    availableNodes
+            );
+
+            int count =
+                    Math.min(
+                            missing,
+                            availableNodes.size()
+                    );
+
+            for (int i = 0; i < count; i++) {
+
+                SimulatedNode node =
+                        availableNodes.get(i);
+
+                node.setFaultType(
+                        FaultType.LOW_BATTERY
+                );
+
+                node.setFaulty(true);
+
+                createNodeFaultRecord(
+                        state,
+                        node,
+                        FaultType.LOW_BATTERY
+                );
+            }
+        }
+
+        double decrease =
+                Math.max(
+                        0.1,
+                        intensity
+                );
+
+        List<SimulatedFault> batteryFaults =
+                getActiveFaultsByType(
+                        FaultType.LOW_BATTERY
+                );
+
+        for (SimulatedFault fault :
+                batteryFaults) {
+
+            if (fault.getNodeId() == null) {
+                continue;
+            }
+
+            SimulatedNode node =
+                    findNode(
+                            state,
+                            fault.getNodeId()
+                    );
+
+            if (node == null) {
+                continue;
+            }
+
+            node.setFaultType(
+                    FaultType.LOW_BATTERY
+            );
+
+            node.setFaulty(true);
+
+            node.setBatteryLevel(
+                    Math.max(
+                            0,
+                            node.getBatteryLevel()
+                                    - decrease
+                    )
+            );
+        }
+    }
+
+    private void injectCpuOverloadFaults(
+            NetworkState state,
+            double intensity,
+            int numberOfFaults
+    ) {
+
+        int required =
+                normalizeFaultCount(
+                        numberOfFaults
+                );
+
+        int existing =
+                countActiveNodeFaults(
+                        FaultType.HIGH_CPU
+                );
+
+        int missing =
+                Math.max(
+                        0,
+                        required - existing
+                );
+
+        if (missing > 0) {
+
+            List<SimulatedNode> availableNodes =
+                    getAvailableNodes(
+                            state,
+                            FaultType.HIGH_CPU
+                    );
+
+            Collections.shuffle(
+                    availableNodes
+            );
+
+            int count =
+                    Math.min(
+                            missing,
+                            availableNodes.size()
+                    );
+
+            for (int i = 0; i < count; i++) {
+
+                SimulatedNode node =
+                        availableNodes.get(i);
+
+                node.setFaultType(
+                        FaultType.HIGH_CPU
+                );
+
+                node.setFaulty(true);
+
+                createNodeFaultRecord(
+                        state,
+                        node,
+                        FaultType.HIGH_CPU
+                );
+            }
+        }
+
+        double increase =
+                Math.max(
+                        1,
+                        intensity
+                );
+
+        List<SimulatedFault> cpuFaults =
+                getActiveFaultsByType(
+                        FaultType.HIGH_CPU
+                );
+
+        for (SimulatedFault fault :
+                cpuFaults) {
+
+            if (fault.getNodeId() == null) {
+                continue;
+            }
+
+            SimulatedNode node =
+                    findNode(
+                            state,
+                            fault.getNodeId()
+                    );
+
+            if (node == null) {
+                continue;
+            }
+
+            node.setFaultType(
+                    FaultType.HIGH_CPU
+            );
+
+            node.setFaulty(true);
+
+            node.setCpuUsage(
+                    Math.min(
+                            100,
+                            node.getCpuUsage()
+                                    + increase
+                    )
+            );
+        }
+    }
+
+    private void injectLinkFaults(
+            NetworkState state,
+            FaultType faultType,
+            int numberOfFaults
+    ) {
+
+        int required =
+                normalizeFaultCount(
+                        numberOfFaults
+                );
+
+        int existing =
+                countActiveLinkFaults(
+                        faultType
+                );
+
+        int missing =
+                Math.max(
+                        0,
+                        required - existing
+                );
+
+        if (missing == 0) {
+            return;
+        }
+
+        List<SimulatedLink> availableLinks =
+                new ArrayList<>(
+                        state.getLinks()
+                                .stream()
+                                .filter(SimulatedLink::isActive)
+                                .toList()
+                );
+
+        Collections.shuffle(
+                availableLinks
+        );
+
+        int injected = 0;
+
+        for (SimulatedLink link :
+                availableLinks) {
+
+            if (injected >= missing) {
+                break;
+            }
+
+            if (hasLinkFault(
+                    link,
+                    faultType
+            )) {
+                continue;
+            }
+
+            applyLinkFault(
+                    link,
+                    faultType
+            );
+
+            createLinkFaultRecord(
+                    state,
+                    link,
+                    faultType
+            );
+
+            injected++;
+        }
+    }
+
+    public synchronized SimulatedFault injectNodeFault(
             NetworkState state,
             FaultType faultType
     ) {
 
         List<SimulatedNode> activeNodes =
-                state.getNodes()
-                        .stream()
-                        .filter(SimulatedNode::isActive)
-                        .toList();
+                getAvailableNodes(
+                        state,
+                        faultType
+                );
 
         if (activeNodes.isEmpty()) {
             return null;
@@ -217,7 +612,9 @@ public class FaultInjector {
         SimulatedNode node =
                 activeNodes.get(
                         ThreadLocalRandom.current()
-                                .nextInt(activeNodes.size())
+                                .nextInt(
+                                        activeNodes.size()
+                                )
                 );
 
         applyNodeFault(
@@ -225,51 +622,25 @@ public class FaultInjector {
                 faultType
         );
 
-        SimulatedFault fault =
-                SimulatedFault.builder()
-                        .faultId(
-                                faultSequence
-                                        .getAndIncrement()
-                        )
-                        .faultType(faultType)
-                        .category(
-                                faultType.getCategory()
-                        )
-                        .severity(
-                                faultType.getSeverity()
-                        )
-                        .nodeId(
-                                node.getNodeId()
-                        )
-                        .startTime(
-                                state.getCurrentTime()
-                        )
-                        .active(true)
-                        .detected(false)
-                        .aiMitigated(false)
-                        .humanInterventionRequired(
-                                !faultType.isAiMitigable()
-                        )
-                        .description(
-                                faultType.name()
-                        )
-                        .build();
-
-        activeFaults.add(fault);
-
-        return fault;
+        return createNodeFaultRecord(
+                state,
+                node,
+                faultType
+        );
     }
 
-    public SimulatedFault injectLinkFault(
+    public synchronized SimulatedFault injectLinkFault(
             NetworkState state,
             FaultType faultType
     ) {
 
         List<SimulatedLink> activeLinks =
-                state.getLinks()
-                        .stream()
-                        .filter(SimulatedLink::isActive)
-                        .toList();
+                new ArrayList<>(
+                        state.getLinks()
+                                .stream()
+                                .filter(SimulatedLink::isActive)
+                                .toList()
+                );
 
         if (activeLinks.isEmpty()) {
             return null;
@@ -278,7 +649,9 @@ public class FaultInjector {
         SimulatedLink link =
                 activeLinks.get(
                         ThreadLocalRandom.current()
-                                .nextInt(activeLinks.size())
+                                .nextInt(
+                                        activeLinks.size()
+                                )
                 );
 
         applyLinkFault(
@@ -286,49 +659,19 @@ public class FaultInjector {
                 faultType
         );
 
-        SimulatedFault fault =
-                SimulatedFault.builder()
-                        .faultId(
-                                faultSequence
-                                        .getAndIncrement()
-                        )
-                        .faultType(faultType)
-                        .category(
-                                faultType.getCategory()
-                        )
-                        .severity(
-                                faultType.getSeverity()
-                        )
-                        .sourceNodeId(
-                                link.getSourceNodeId()
-                        )
-                        .destinationNodeId(
-                                link.getDestinationNodeId()
-                        )
-                        .startTime(
-                                state.getCurrentTime()
-                        )
-                        .active(true)
-                        .detected(false)
-                        .aiMitigated(false)
-                        .humanInterventionRequired(
-                                !faultType.isAiMitigable()
-                        )
-                        .description(
-                                faultType.name()
-                        )
-                        .build();
-
-        activeFaults.add(fault);
-
-        return fault;
+        return createLinkFaultRecord(
+                state,
+                link,
+                faultType
+        );
     }
 
-    public void reapplyActiveFaults(
+    public synchronized void reapplyActiveFaults(
             NetworkState state
     ) {
 
-        for (SimulatedFault fault : getActiveFaults()) {
+        for (SimulatedFault fault :
+                getActiveFaults()) {
 
             if (fault.getNodeId() != null) {
 
@@ -339,6 +682,7 @@ public class FaultInjector {
                         );
 
                 if (node != null) {
+
                     applyNodeFault(
                             node,
                             fault.getFaultType()
@@ -357,6 +701,7 @@ public class FaultInjector {
                         );
 
                 if (link != null) {
+
                     applyLinkFault(
                             link,
                             fault.getFaultType()
@@ -366,85 +711,291 @@ public class FaultInjector {
         }
     }
 
-    private void applyBatteryDegradation(
+    private List<SimulatedNode> getAvailableNodes(
             NetworkState state,
-            double intensity
+            FaultType faultType
     ) {
 
-        for (SimulatedNode node : state.getNodes()) {
+        Set<Long> alreadyAffected =
+                new HashSet<>();
 
-            if (!node.isActive()) {
+        for (SimulatedFault fault :
+                activeFaults) {
+
+            if (!fault.isActive()) {
                 continue;
             }
 
-            double battery =
-                    node.getBatteryLevel();
+            if (fault.getFaultType()
+                    != faultType) {
+                continue;
+            }
 
-            double decrease =
-                    Math.max(
-                            0.1,
-                            intensity
-                    );
+            if (fault.getNodeId() != null) {
 
-            node.setBatteryLevel(
-                    Math.max(
-                            0,
-                            battery - decrease
-                    )
-            );
-
-            if (node.getBatteryLevel() <= 20) {
-
-                createNodeFaultRecord(
-                        state,
-                        node,
-                        FaultType.LOW_BATTERY
+                alreadyAffected.add(
+                        fault.getNodeId()
                 );
             }
         }
+
+        return new ArrayList<>(
+                state.getNodes()
+                        .stream()
+                        .filter(SimulatedNode::isActive)
+                        .filter(
+                                node ->
+                                        !alreadyAffected.contains(
+                                                node.getNodeId()
+                                        )
+                        )
+                        .toList()
+        );
     }
 
-    private void applyCpuOverload(
-            NetworkState state,
-            double intensity
+    private List<SimulatedFault> getActiveFaultsByType(
+            FaultType faultType
     ) {
 
-        for (SimulatedNode node : state.getNodes()) {
+        return activeFaults.stream()
+                .filter(SimulatedFault::isActive)
+                .filter(
+                        fault ->
+                                fault.getFaultType()
+                                        == faultType
+                )
+                .toList();
+    }
 
-            if (!node.isActive()) {
-                continue;
-            }
+    private int countActiveNodeFaults(
+            FaultType faultType
+    ) {
 
-            double cpu =
-                    node.getCpuUsage();
+        return (int)
+                activeFaults.stream()
+                        .filter(SimulatedFault::isActive)
+                        .filter(
+                                fault ->
+                                        fault.getFaultType()
+                                                == faultType
+                                                && fault.getNodeId()
+                                                != null
+                        )
+                        .count();
+    }
 
-            double increase =
-                    Math.max(
-                            1,
-                            intensity
-                    );
+    private int countActiveLinkFaults(
+            FaultType faultType
+    ) {
 
-            node.setCpuUsage(
-                    Math.min(
-                            100,
-                            cpu + increase
-                    )
-            );
+        return (int)
+                activeFaults.stream()
+                        .filter(SimulatedFault::isActive)
+                        .filter(
+                                fault ->
+                                        fault.getFaultType()
+                                                == faultType
+                                                && fault.getSourceNodeId()
+                                                != null
+                                                && fault.getDestinationNodeId()
+                                                != null
+                        )
+                        .count();
+    }
 
-            if (node.getCpuUsage() >= 90) {
+    private boolean hasNodeFault(
+            Long nodeId,
+            FaultType faultType
+    ) {
 
-                createNodeFaultRecord(
-                        state,
-                        node,
-                        FaultType.HIGH_CPU
+        return activeFaults.stream()
+                .anyMatch(
+                        fault ->
+                                fault.isActive()
+                                        && fault.getNodeId() != null
+                                        && fault.getNodeId()
+                                        .equals(nodeId)
+                                        && fault.getFaultType()
+                                        == faultType
                 );
+    }
+
+    private boolean hasLinkFault(
+            SimulatedLink link,
+            FaultType faultType
+    ) {
+
+        return activeFaults.stream()
+                .anyMatch(
+                        fault ->
+                                fault.isActive()
+                                        && fault.getSourceNodeId() != null
+                                        && fault.getDestinationNodeId() != null
+                                        && fault.getFaultType()
+                                        == faultType
+                                        && (
+                                        (
+                                                fault.getSourceNodeId()
+                                                        .equals(
+                                                                link.getSourceNodeId()
+                                                        )
+                                                        && fault.getDestinationNodeId()
+                                                        .equals(
+                                                                link.getDestinationNodeId()
+                                                        )
+                                        )
+                                                ||
+                                                (
+                                                        fault.getSourceNodeId()
+                                                                .equals(
+                                                                        link.getDestinationNodeId()
+                                                                )
+                                                                && fault.getDestinationNodeId()
+                                                                .equals(
+                                                                        link.getSourceNodeId()
+                                                                )
+                                                )
+                                )
+                );
+    }
+
+    private int normalizeFaultCount(
+            int numberOfFaults
+    ) {
+
+        return Math.max(
+                1,
+                numberOfFaults
+        );
+    }
+
+    private SimulatedFault createNodeFaultRecord(
+            NetworkState state,
+            SimulatedNode node,
+            FaultType type
+    ) {
+
+        for (SimulatedFault existing :
+                activeFaults) {
+
+            if (existing.isActive()
+                    && existing.getNodeId() != null
+                    && existing.getNodeId()
+                    .equals(node.getNodeId())
+                    && existing.getFaultType() == type) {
+
+                return existing;
             }
         }
+
+        SimulatedFault fault =
+                SimulatedFault.builder()
+                        .faultId(
+                                faultSequence
+                                        .getAndIncrement()
+                        )
+                        .faultType(type)
+                        .category(
+                                type.getCategory()
+                        )
+                        .severity(
+                                type.getSeverity()
+                        )
+                        .nodeId(
+                                node.getNodeId()
+                        )
+                        .startTime(
+                                state.getCurrentTime()
+                        )
+                        .active(true)
+                        .detected(false)
+                        .aiMitigated(false)
+                        .humanInterventionRequired(
+                                !type.isAiMitigable()
+                        )
+                        .description(
+                                type.name()
+                        )
+                        .build();
+
+        activeFaults.add(
+                fault
+        );
+
+        return fault;
+    }
+
+    private SimulatedFault createLinkFaultRecord(
+            NetworkState state,
+            SimulatedLink link,
+            FaultType type
+    ) {
+
+        for (SimulatedFault existing :
+                activeFaults) {
+
+            if (existing.isActive()
+                    && existing.getSourceNodeId() != null
+                    && existing.getDestinationNodeId() != null
+                    && existing.getSourceNodeId()
+                    .equals(link.getSourceNodeId())
+                    && existing.getDestinationNodeId()
+                    .equals(link.getDestinationNodeId())
+                    && existing.getFaultType() == type) {
+
+                return existing;
+            }
+        }
+
+        SimulatedFault fault =
+                SimulatedFault.builder()
+                        .faultId(
+                                faultSequence
+                                        .getAndIncrement()
+                        )
+                        .faultType(type)
+                        .category(
+                                type.getCategory()
+                        )
+                        .severity(
+                                type.getSeverity()
+                        )
+                        .sourceNodeId(
+                                link.getSourceNodeId()
+                        )
+                        .destinationNodeId(
+                                link.getDestinationNodeId()
+                        )
+                        .startTime(
+                                state.getCurrentTime()
+                        )
+                        .active(true)
+                        .detected(false)
+                        .aiMitigated(false)
+                        .humanInterventionRequired(
+                                !type.isAiMitigable()
+                        )
+                        .description(
+                                type.name()
+                        )
+                        .build();
+
+        activeFaults.add(
+                fault
+        );
+
+        return fault;
     }
 
     private void createNetworkPartition(
             NetworkState state
     ) {
+
+        if (hasScenarioFault(
+                FaultScenario.NETWORK_PARTITION_SCENARIO
+        )) {
+            return;
+        }
 
         List<SimulatedNode> nodes =
                 state.getNodes();
@@ -469,6 +1020,12 @@ public class FaultInjector {
                             5
                     )
             );
+
+            node.setFaultType(
+                    FaultType.NETWORK_PARTITION
+            );
+
+            node.setFaulty(true);
         }
 
         SimulatedFault fault =
@@ -498,7 +1055,9 @@ public class FaultInjector {
                         )
                         .build();
 
-        activeFaults.add(fault);
+        activeFaults.add(
+                fault
+        );
     }
 
     private void applyMultiFaultScenario(
@@ -506,24 +1065,33 @@ public class FaultInjector {
             FaultScenarioParameters parameters
     ) {
 
-        injectNodeFault(
+        int numberOfFaults =
+                normalizeFaultCount(
+                        parameters.getNumberOfFaults()
+                );
+
+        injectNodeFaults(
                 state,
-                FaultType.HIGH_CPU
+                FaultType.HIGH_CPU,
+                numberOfFaults
         );
 
-        injectLinkFault(
+        injectLinkFaults(
                 state,
-                FaultType.HIGH_PACKET_LOSS
+                FaultType.HIGH_PACKET_LOSS,
+                numberOfFaults
         );
 
-        injectLinkFault(
+        injectLinkFaults(
                 state,
-                FaultType.HIGH_LATENCY
+                FaultType.HIGH_LATENCY,
+                numberOfFaults
         );
 
-        applyBatteryDegradation(
+        injectBatteryDegradationFaults(
                 state,
-                parameters.getIntensity()
+                parameters.getIntensity(),
+                numberOfFaults
         );
     }
 
@@ -531,6 +1099,10 @@ public class FaultInjector {
             SimulatedNode node,
             FaultType faultType
     ) {
+
+        node.setFaultType(
+                faultType
+        );
 
         switch (faultType) {
 
@@ -547,12 +1119,7 @@ public class FaultInjector {
 
             case LOW_BATTERY:
 
-                node.setBatteryLevel(
-                        Math.min(
-                                node.getBatteryLevel(),
-                                15
-                        )
-                );
+                node.setFaulty(true);
                 break;
 
             case HIGH_CPU:
@@ -563,6 +1130,8 @@ public class FaultInjector {
                                 90
                         )
                 );
+
+                node.setFaulty(true);
                 break;
 
             case MEMORY_EXHAUSTION:
@@ -573,6 +1142,8 @@ public class FaultInjector {
                                 95
                         )
                 );
+
+                node.setFaulty(true);
                 break;
 
             case WEAK_SIGNAL:
@@ -583,9 +1154,13 @@ public class FaultInjector {
                                 20
                         )
                 );
+
+                node.setFaulty(true);
                 break;
 
             default:
+
+                node.setFaulty(true);
                 break;
         }
     }
@@ -611,6 +1186,7 @@ public class FaultInjector {
                                 0.70
                         )
                 );
+
                 break;
 
             case HIGH_LATENCY:
@@ -621,6 +1197,7 @@ public class FaultInjector {
                                 500
                         )
                 );
+
                 break;
 
             case WEAK_SIGNAL:
@@ -639,6 +1216,7 @@ public class FaultInjector {
                                 0.20
                         )
                 );
+
                 break;
 
             case RADIO_INTERFERENCE:
@@ -656,6 +1234,7 @@ public class FaultInjector {
                                 150
                         )
                 );
+
                 break;
 
             case CHANNEL_CONGESTION:
@@ -667,61 +1246,108 @@ public class FaultInjector {
                                 0.30
                         )
                 );
+
                 break;
 
             default:
+
                 break;
         }
     }
 
-    private void createNodeFaultRecord(
+    private void recoverScenario(
             NetworkState state,
-            SimulatedNode node,
-            FaultType type
+            FaultScenario scenario
     ) {
 
-        boolean alreadyActive =
-                activeFaults.stream()
-                        .anyMatch(
-                                fault ->
-                                        fault.isActive()
-                                                && fault.getNodeId()
-                                                != null
-                                                && fault.getNodeId()
-                                                .equals(
-                                                        node.getNodeId()
-                                                )
-                                                && fault.getFaultType()
-                                                == type
+        for (SimulatedFault fault :
+                activeFaults) {
+
+            if (!fault.isActive()
+                    || !matchesScenario(
+                    fault,
+                    scenario
+            )) {
+                continue;
+            }
+
+            fault.setActive(false);
+
+            if (fault.getNodeId() != null) {
+
+                SimulatedNode node =
+                        findNode(
+                                state,
+                                fault.getNodeId()
                         );
 
-        if (alreadyActive) {
-            return;
+                if (node != null
+                        && node.getFaultType()
+                        == fault.getFaultType()) {
+
+                    node.setFaulty(false);
+                    node.setFaultType(null);
+                }
+            }
+
+            if (fault.getSourceNodeId() != null
+                    && fault.getDestinationNodeId() != null) {
+
+                SimulatedLink link =
+                        findLink(
+                                state,
+                                fault.getSourceNodeId(),
+                                fault.getDestinationNodeId()
+                        );
+
+                if (link != null) {
+
+                    recoverLink(
+                            link,
+                            fault.getFaultType()
+                    );
+                }
+            }
         }
+    }
 
-        SimulatedFault fault =
-                SimulatedFault.builder()
-                        .faultId(
-                                faultSequence
-                                        .getAndIncrement()
-                        )
-                        .faultType(type)
-                        .category(type.getCategory())
-                        .severity(type.getSeverity())
-                        .nodeId(node.getNodeId())
-                        .startTime(
-                                state.getCurrentTime()
-                        )
-                        .active(true)
-                        .detected(false)
-                        .aiMitigated(false)
-                        .humanInterventionRequired(
-                                !type.isAiMitigable()
-                        )
-                        .description(type.name())
-                        .build();
+    private void recoverLink(
+            SimulatedLink link,
+            FaultType faultType
+    ) {
 
-        activeFaults.add(fault);
+        switch (faultType) {
+
+            case LINK_FAILURE:
+            case RADIO_OUTAGE:
+
+                link.setActive(true);
+                break;
+
+            case HIGH_PACKET_LOSS:
+            case CHANNEL_CONGESTION:
+            case HIGH_COLLISION_RATE:
+            case RADIO_INTERFERENCE:
+
+                link.setPacketLoss(0);
+                break;
+
+            case HIGH_LATENCY:
+
+                link.setLatency(0);
+                break;
+
+            case WEAK_SIGNAL:
+            case SIGNAL_ATTENUATION:
+
+                link.setSignalStrength(100);
+                link.setQuality(1.0);
+                break;
+
+            default:
+
+                break;
+        }
     }
 
     private SimulatedNode findNode(
@@ -768,19 +1394,21 @@ public class FaultInjector {
                 .orElse(null);
     }
 
-    public List<SimulatedFault> getActiveFaults() {
+    public synchronized List<SimulatedFault> getActiveFaults() {
 
         return activeFaults.stream()
                 .filter(SimulatedFault::isActive)
                 .toList();
     }
 
-    public List<SimulatedFault> getAllFaults() {
+    public synchronized List<SimulatedFault> getAllFaults() {
 
-        return List.copyOf(activeFaults);
+        return List.copyOf(
+                activeFaults
+        );
     }
 
-    public void clearFaults() {
+    public synchronized void clearFaults() {
 
         activeFaults.clear();
     }
