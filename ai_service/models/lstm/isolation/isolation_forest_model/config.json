@@ -1,0 +1,22 @@
+{
+    "model": "Isolation Forest",
+    "features": [
+        "cpu",
+        "memory",
+        "battery",
+        "rssi",
+        "packet_loss",
+        "latency",
+        "throughput",
+        "queue_size",
+        "traffic_load",
+        "link_quality",
+        "mobility_speed"
+    ],
+    "n_estimators": 200,
+    "contamination": 0.05,
+    "random_state": 42,
+    "anomaly_score_method": "negative_decision_function",
+    "normal_status": "Normal",
+    "anomalous_status": "Anomalous"
+}
