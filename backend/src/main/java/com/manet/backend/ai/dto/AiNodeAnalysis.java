@@ -12,26 +12,30 @@ import lombok.NoArgsConstructor;
 public class AiNodeAnalysis {
 
     private Long nodeId;
+
     private long timestamp;
 
     private String status;
 
     private RandomForestResponse randomForest;
+
     private XgboostResponse xgboost;
+
     private IsolationForestResponse isolationForest;
+
     private LstmResponse lstm;
+
     private RecoveryResponse recovery;
 
     /*
-     * Result of the Spring Boot recovery execution layer.
+     * Recovery execution result.
      *
-     * Examples:
+     * RECOMMENDED
      * EXECUTED
+     * FAILED
      * NOTIFIED
      * MONITORING
-     * DISABLED
-     * SKIPPED
-     * FAILED
+     * etc.
      */
     private String recoveryExecutionStatus;
 

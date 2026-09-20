@@ -30,86 +30,236 @@ public class AiPersistenceService {
             AiRecoveryExecutionRepository recoveryRepository,
             ObjectMapper objectMapper
     ) {
-        this.analysisRepository = analysisRepository;
-        this.recoveryRepository = recoveryRepository;
-        this.objectMapper = objectMapper;
+        this.analysisRepository =
+                analysisRepository;
+
+        this.recoveryRepository =
+                recoveryRepository;
+
+        this.objectMapper =
+                objectMapper;
     }
+
+    // ============================================================
+    // SAVE AI ANALYSIS
+    // ============================================================
 
     @Transactional
     public AiAnalysisRecord saveAnalysis(
             Long simulationId,
             AiNodeAnalysis analysis
     ) {
-        if (simulationId == null || analysis == null || analysis.getNodeId() == null) {
+
+        if (simulationId == null) {
             throw new IllegalArgumentException(
-                    "Simulation ID and AI analysis with node ID are required"
+                    "Simulation ID is required"
             );
         }
 
-        RecoveryResponse recovery = analysis.getRecovery();
+        if (analysis == null) {
+            throw new IllegalArgumentException(
+                    "AI analysis is required"
+            );
+        }
 
-        AiAnalysisRecord record = AiAnalysisRecord.builder()
-                .simulationId(simulationId)
-                .nodeId(analysis.getNodeId())
-                .simulationTimestamp(analysis.getTimestamp())
-                .status(analysis.getStatus())
-                .failureProbability(
-                        analysis.getRandomForest() == null
-                                ? null
-                                : analysis.getRandomForest().failure_probability()
-                )
-                .faultPrediction(
-                        analysis.getXgboost() == null
-                                ? null
-                                : analysis.getXgboost().fault_prediction()
-                )
-                .anomalyStatus(
-                        analysis.getIsolationForest() == null
-                                ? null
-                                : analysis.getIsolationForest().anomaly_status()
-                )
-                .lstmLinkQuality(
-                        analysis.getLstm() == null
-                                ? null
-                                : analysis.getLstm().predicted_future_link_quality()
-                )
-                .lstmFailureRisk(
-                        analysis.getLstm() == null
-                                ? null
-                                : analysis.getLstm().failure_risk()
-                )
-                .recoveryDecision(
-                        recovery == null
-                                ? null
-                                : recovery.recovery_decision()
-                )
-                .recommendedRecoveryAction(
-                        recovery == null
-                                ? null
-                                : recovery.recommended_recovery_action()
-                )
-                .recoverabilityScore(
-                        recovery == null
-                                ? null
-                                : recovery.recoverability_score()
-                )
-                .recoverySuccessProbability(
-                        recovery == null
-                                ? null
-                                : recovery.best_action_success_probability()
-                )
-                .recoveryExecutionStatus(
-                        analysis.getRecoveryExecutionStatus()
-                )
-                .recoveryExecutionMessage(
-                        analysis.getRecoveryExecutionMessage()
-                )
-                .analysisJson(toJson(analysis))
-                .createdAt(LocalDateTime.now())
-                .build();
+        if (analysis.getNodeId() == null) {
+            throw new IllegalArgumentException(
+                    "AI analysis node ID is required"
+            );
+        }
 
-        return analysisRepository.save(record);
+        RecoveryResponse recovery =
+                analysis.getRecovery();
+
+        AiAnalysisRecord record =
+                AiAnalysisRecord.builder()
+                        .simulationId(
+                                simulationId
+                        )
+
+                        .nodeId(
+                                analysis.getNodeId()
+                        )
+
+                        .simulationTimestamp(
+                                analysis.getTimestamp()
+                        )
+
+                        .status(
+                                analysis.getStatus()
+                        )
+
+                        // ------------------------------------------------
+                        // RANDOM FOREST
+                        // ------------------------------------------------
+
+                        .failureProbability(
+                                analysis.getRandomForest() == null
+                                        ? null
+                                        : analysis
+                                          .getRandomForest()
+                                          .failure_probability()
+                        )
+
+                        .failurePrediction(
+                                analysis.getRandomForest() == null
+                                        ? null
+                                        : analysis
+                                          .getRandomForest()
+                                          .failure_prediction()
+                        )
+
+                        // ------------------------------------------------
+                        // XGBOOST
+                        // ------------------------------------------------
+
+                        .faultPrediction(
+                                analysis.getXgboost() == null
+                                        ? null
+                                        : analysis
+                                          .getXgboost()
+                                          .fault_prediction()
+                        )
+
+                        .xgbFaultProbability(
+                                analysis.getXgboost() == null
+                                        ? null
+                                        : analysis
+                                          .getXgboost()
+                                          .fault_probability()
+                        )
+
+                        .xgbClassProbabilities(
+                                analysis.getXgboost() == null
+                                        ? null
+                                        : toJson(
+                                        analysis
+                                        .getXgboost()
+                                        .class_probabilities()
+                                )
+                        )
+
+                        // ------------------------------------------------
+                        // ISOLATION FOREST
+                        // ------------------------------------------------
+
+                        .anomalyStatus(
+                                analysis.getIsolationForest() == null
+                                        ? null
+                                        : analysis
+                                          .getIsolationForest()
+                                          .anomaly_status()
+                        )
+
+                        .isolationAnomalyScore(
+                                analysis.getIsolationForest() == null
+                                        ? null
+                                        : analysis
+                                          .getIsolationForest()
+                                          .anomaly_score()
+                        )
+
+                        // ------------------------------------------------
+                        // LSTM
+                        // ------------------------------------------------
+
+                        .lstmLinkQuality(
+                                analysis.getLstm() == null
+                                        ? null
+                                        : analysis
+                                          .getLstm()
+                                          .predicted_future_link_quality()
+                        )
+
+                        .lstmFutureRssi(
+                                analysis.getLstm() == null
+                                        ? null
+                                        : analysis
+                                          .getLstm()
+                                          .predicted_future_rssi()
+                        )
+
+                        .lstmFailureRisk(
+                                analysis.getLstm() == null
+                                        ? null
+                                        : analysis
+                                          .getLstm()
+                                          .failure_risk()
+                        )
+
+                        .lstmSequenceLength(
+                                analysis.getLstm() == null
+                                        ? null
+                                        : analysis
+                                          .getLstm()
+                                          .sequence_length()
+                        )
+
+                        // ------------------------------------------------
+                        // RECOVERY
+                        // ------------------------------------------------
+
+                        .recoveryDecision(
+                                recovery == null
+                                        ? null
+                                        : recovery
+                                          .recovery_decision()
+                        )
+
+                        .recommendedRecoveryAction(
+                                recovery == null
+                                        ? null
+                                        : recovery
+                                          .recommended_recovery_action()
+                        )
+
+                        .recoverabilityScore(
+                                recovery == null
+                                        ? null
+                                        : recovery
+                                          .recoverability_score()
+                        )
+
+                        .recoverySuccessProbability(
+                                recovery == null
+                                        ? null
+                                        : findActionProbability(
+                                        recovery,
+                                        recovery
+                                        .recommended_recovery_action()
+                                )
+                        )
+
+                        .recoveryExecutionStatus(
+                                analysis.getRecoveryExecutionStatus()
+                        )
+
+                        .recoveryExecutionMessage(
+                                analysis.getRecoveryExecutionMessage()
+                        )
+
+                        // ------------------------------------------------
+                        // COMPLETE JSON
+                        // ------------------------------------------------
+
+                        .analysisJson(
+                                toJson(analysis)
+                        )
+
+                        .createdAt(
+                                LocalDateTime.now()
+                        )
+
+                        .build();
+
+        return analysisRepository.save(
+                record
+        );
     }
+
+    // ============================================================
+    // SAVE RECOVERY EXECUTION
+    // ============================================================
 
     @Transactional
     public AiRecoveryExecution saveRecoveryExecution(
@@ -118,66 +268,144 @@ public class AiPersistenceService {
             RecoveryExecutionResult result,
             String conditionSignature
     ) {
-        if (simulationId == null || analysis == null || result == null) {
+
+        if (simulationId == null) {
             throw new IllegalArgumentException(
-                    "Simulation ID, analysis and recovery result are required"
+                    "Simulation ID is required"
             );
         }
 
-        RecoveryResponse recovery = analysis.getRecovery();
+        if (analysis == null) {
+            throw new IllegalArgumentException(
+                    "AI analysis is required"
+            );
+        }
 
-        AiRecoveryExecution execution = AiRecoveryExecution.builder()
-                .simulationId(simulationId)
-                .nodeId(analysis.getNodeId())
-                .simulationTimestamp(analysis.getTimestamp())
-                .actionType(result.action())
-                .recoveryDecision(
-                        recovery == null
-                                ? null
-                                : recovery.recovery_decision()
-                )
-                .executionStatus(result.status())
-                .message(result.message())
-                .affectedPackets(result.affectedPackets())
-                .recoverabilityScore(
-                        recovery == null
-                                ? null
-                                : recovery.recoverability_score()
-                )
-                .successProbability(
-                        recovery == null
-                                ? null
-                                : findActionProbability(
+        if (result == null) {
+            throw new IllegalArgumentException(
+                    "Recovery execution result is required"
+            );
+        }
+
+        RecoveryResponse recovery =
+                analysis.getRecovery();
+
+        LocalDateTime now =
+                LocalDateTime.now();
+
+        AiRecoveryExecution execution =
+                AiRecoveryExecution.builder()
+                        .simulationId(
+                                simulationId
+                        )
+
+                        .nodeId(
+                                analysis.getNodeId()
+                        )
+
+                        .simulationTimestamp(
+                                analysis.getTimestamp()
+                        )
+
+                        .actionType(
+                                result.action()
+                        )
+
+                        .recoveryDecision(
+                                recovery == null
+                                        ? null
+                                        : recovery
+                                          .recovery_decision()
+                        )
+
+                        .executionStatus(
+                                result.status()
+                        )
+
+                        .message(
+                                result.message()
+                        )
+
+                        .affectedPackets(
+                                result.affectedPackets()
+                        )
+
+                        .recoverabilityScore(
+                                recovery == null
+                                        ? null
+                                        : recovery
+                                          .recoverability_score()
+                        )
+
+                        .successProbability(
+                                recovery == null
+                                        ? null
+                                        : findActionProbability(
                                         recovery,
                                         result.action()
                                 )
-                )
-                .conditionSignature(conditionSignature)
-                .recoveryJson(
-                        recovery == null
-                                ? null
-                                : toJson(recovery)
-                )
-                .startedAt(LocalDateTime.now())
-                .completedAt(LocalDateTime.now())
-                .build();
+                        )
 
-        return recoveryRepository.save(execution);
+                        .conditionSignature(
+                                conditionSignature
+                        )
+
+                        .recoveryJson(
+                                recovery == null
+                                        ? null
+                                        : toJson(
+                                        recovery
+                                )
+                        )
+
+                        .startedAt(
+                                now
+                        )
+
+                        .completedAt(
+                                now
+                        )
+
+                        .build();
+
+        return recoveryRepository.save(
+                execution
+        );
     }
 
+    // ============================================================
+    // GET ANALYSIS HISTORY
+    // ============================================================
+
+    @Transactional(readOnly = true)
     public List<AiAnalysisRecord> getAnalysisHistory(
             Long simulationId
     ) {
+
+        if (simulationId == null) {
+            return List.of();
+        }
+
         return analysisRepository
                 .findBySimulationIdOrderBySimulationTimestampAscNodeIdAsc(
                         simulationId
                 );
     }
 
+    // ============================================================
+    // GET NODE ANALYSIS HISTORY
+    // ============================================================
+
+    @Transactional(readOnly = true)
     public List<AiAnalysisRecord> getNodeAnalysisHistory(
             Long simulationId,
             Long nodeId
     ) {
+
+        if (simulationId == null || nodeId == null) {
+            return List.of();
+        }
+
         return analysisRepository
                 .findBySimulationIdAndNodeIdOrderBySimulationTimestampDesc(
                         simulationId,
@@ -185,17 +413,36 @@ public class AiPersistenceService {
                 );
     }
 
-    public Map<Long, AiAnalysisRecord> getLatestPersistedAnalysis(
+    // ============================================================
+    // GET LATEST ANALYSIS PER NODE
+    // ============================================================
+
+    @Transactional(readOnly = true)
+    public Map<Long, AiAnalysisRecord>
+    getLatestPersistedAnalysis(
             Long simulationId
     ) {
+
         Map<Long, AiAnalysisRecord> latest =
                 new LinkedHashMap<>();
 
-        for (AiAnalysisRecord record :
+        if (simulationId == null) {
+            return latest;
+        }
+
+        List<AiAnalysisRecord> records =
                 analysisRepository
                         .findBySimulationIdOrderBySimulationTimestampDescNodeIdAsc(
                                 simulationId
-                        )) {
+                        );
+
+        for (AiAnalysisRecord record :
+                records) {
+
+            if (record == null
+                    || record.getNodeId() == null) {
+                continue;
+            }
 
             latest.putIfAbsent(
                     record.getNodeId(),
@@ -206,19 +453,41 @@ public class AiPersistenceService {
         return latest;
     }
 
-    public List<AiRecoveryExecution> getRecoveryExecutions(
+    // ============================================================
+    // GET RECOVERY EXECUTIONS
+    // ============================================================
+
+    @Transactional(readOnly = true)
+    public List<AiRecoveryExecution>
+    getRecoveryExecutions(
             Long simulationId
     ) {
+
+        if (simulationId == null) {
+            return List.of();
+        }
+
         return recoveryRepository
                 .findBySimulationIdOrderBySimulationTimestampDesc(
                         simulationId
                 );
     }
 
-    public List<AiRecoveryExecution> getNodeRecoveryExecutions(
+    // ============================================================
+    // GET NODE RECOVERY EXECUTIONS
+    // ============================================================
+
+    @Transactional(readOnly = true)
+    public List<AiRecoveryExecution>
+    getNodeRecoveryExecutions(
             Long simulationId,
             Long nodeId
     ) {
+
+        if (simulationId == null || nodeId == null) {
+            return List.of();
+        }
+
         return recoveryRepository
                 .findBySimulationIdAndNodeIdOrderBySimulationTimestampDesc(
                         simulationId,
@@ -226,53 +495,101 @@ public class AiPersistenceService {
                 );
     }
 
-    public Map<Long, AiNodeAnalysis> getLatestAnalysisObjects(
+    // ============================================================
+    // GET LATEST AI OBJECTS
+    // ============================================================
+
+    @Transactional(readOnly = true)
+    public Map<Long, AiNodeAnalysis>
+    getLatestAnalysisObjects(
             Long simulationId
     ) {
 
-        Map<Long, AiNodeAnalysis> latest =
+        Map<Long, AiNodeAnalysis> result =
                 new LinkedHashMap<>();
 
         for (AiAnalysisRecord record :
-                getLatestPersistedAnalysis(simulationId).values()) {
+                getLatestPersistedAnalysis(
+                        simulationId
+                ).values()) {
 
-            latest.put(
-                    record.getNodeId(),
+            if (record == null) {
+                continue;
+            }
+
+            AiNodeAnalysis analysis =
                     fromJson(
                             record.getAnalysisJson(),
                             AiNodeAnalysis.class
-                    )
-            );
-        }
+                    );
 
-        return latest;
-    }
+            if (analysis != null) {
 
-    public List<AiNodeAnalysis> getNodeAnalysisHistoryObjects(
-            Long simulationId,
-            Long nodeId
-    ) {
-
-        List<AiNodeAnalysis> result = new ArrayList<>();
-
-        for (AiAnalysisRecord record :
-                getNodeAnalysisHistory(simulationId, nodeId)) {
-
-            result.add(
-                    fromJson(
-                            record.getAnalysisJson(),
-                            AiNodeAnalysis.class
-                    )
-            );
+                result.put(
+                        record.getNodeId(),
+                        analysis
+                );
+            }
         }
 
         return result;
     }
 
+    // ============================================================
+    // GET NODE ANALYSIS OBJECT HISTORY
+    // ============================================================
+
+    @Transactional(readOnly = true)
+    public List<AiNodeAnalysis>
+    getNodeAnalysisHistoryObjects(
+            Long simulationId,
+            Long nodeId
+    ) {
+
+        List<AiNodeAnalysis> result =
+                new ArrayList<>();
+
+        for (AiAnalysisRecord record :
+                getNodeAnalysisHistory(
+                        simulationId,
+                        nodeId
+                )) {
+
+            if (record == null
+                    || record.getAnalysisJson() == null) {
+                continue;
+            }
+
+            AiNodeAnalysis analysis =
+                    fromJson(
+                            record.getAnalysisJson(),
+                            AiNodeAnalysis.class
+                    );
+
+            if (analysis != null) {
+                result.add(
+                        analysis
+                );
+            }
+        }
+
+        return result;
+    }
+
+    // ============================================================
+    // GET LATEST NODE ANALYSIS
+    // ============================================================
+
+    @Transactional(readOnly = true)
     public AiNodeAnalysis getLatestAnalysisObject(
             Long simulationId,
             Long nodeId
     ) {
+
+        if (simulationId == null
+                || nodeId == null) {
+            return null;
+        }
 
         List<AiAnalysisRecord> records =
                 analysisRepository
@@ -285,100 +602,179 @@ public class AiPersistenceService {
             return null;
         }
 
+        AiAnalysisRecord latest =
+                records.get(0);
+
+        if (latest.getAnalysisJson() == null) {
+            return null;
+        }
+
         return fromJson(
-                records.get(0).getAnalysisJson(),
+                latest.getAnalysisJson(),
                 AiNodeAnalysis.class
         );
     }
 
+    // ============================================================
+    // COUNT ANALYSIS
+    // ============================================================
+
+    @Transactional(readOnly = true)
     public long countAnalysisRecords(
             Long simulationId
     ) {
-        return analysisRepository.countBySimulationId(
-                simulationId
-        );
+
+        if (simulationId == null) {
+            return 0;
+        }
+
+        return analysisRepository
+                .countBySimulationId(
+                        simulationId
+                );
     }
 
+    // ============================================================
+    // COUNT RECOVERY
+    // ============================================================
+
+    @Transactional(readOnly = true)
     public long countRecoveryExecutions(
             Long simulationId
     ) {
-        return recoveryRepository.countBySimulationId(
-                simulationId
-        );
+
+        if (simulationId == null) {
+            return 0;
+        }
+
+        return recoveryRepository
+                .countBySimulationId(
+                        simulationId
+                );
     }
+
+    // ============================================================
+    // CLEAR SIMULATION
+    // ============================================================
 
     @Transactional
     public void clearSimulation(
             Long simulationId
     ) {
+
         if (simulationId == null) {
             return;
         }
 
-        analysisRepository.deleteBySimulationId(
-                simulationId
-        );
-
         recoveryRepository.deleteBySimulationId(
                 simulationId
         );
+
+        analysisRepository.deleteBySimulationId(
+                simulationId
+        );
     }
+
+    // ============================================================
+    // ACTION PROBABILITY
+    // ============================================================
 
     private Double findActionProbability(
             RecoveryResponse recovery,
             String action
     ) {
-        if (recovery == null || action == null) {
+
+        if (recovery == null) {
             return null;
         }
 
-        if (recovery.action_evaluations() == null) {
-            return recovery.best_action_success_probability();
+        if (action == null
+                || action.isBlank()) {
+
+            return recovery
+                    .best_action_success_probability();
         }
 
-        return recovery.action_evaluations()
+        if (recovery.action_evaluations() == null
+                || recovery.action_evaluations().isEmpty()) {
+
+            return recovery
+                    .best_action_success_probability();
+        }
+
+        return recovery
+                .action_evaluations()
                 .stream()
-                .filter(evaluation ->
-                        action.equals(
-                                evaluation.action()
-                        )
+                .filter(
+                        evaluation ->
+                                evaluation != null
+                                        && action.equals(
+                                        evaluation.action()
+                                )
                 )
-                .map(evaluation ->
-                        evaluation.recovery_success_probability()
+                .map(
+                        evaluation ->
+                                evaluation
+                                        .recovery_success_probability()
+                )
+                .filter(
+                        value ->
+                                value != null
                 )
                 .findFirst()
                 .orElse(
-                        recovery.best_action_success_probability()
+                        recovery
+                                .best_action_success_probability()
                 );
+    }
+
+    // ============================================================
+    // JSON
+    // ============================================================
+
+    private String toJson(
+            Object value
+    ) {
+
+        if (value == null) {
+            return null;
+        }
+
+        try {
+
+            return objectMapper.writeValueAsString(
+                    value
+            );
+
+        } catch (JsonProcessingException exception) {
+
+            throw new IllegalStateException(
+                    "Failed to serialize AI data",
+                    exception
+            );
+        }
     }
 
     private <T> T fromJson(
             String json,
             Class<T> type
     ) {
+
+        if (json == null || json.isBlank()) {
+            return null;
+        }
+
         try {
+
             return objectMapper.readValue(
                     json,
                     type
             );
+
         } catch (JsonProcessingException exception) {
+
             throw new IllegalStateException(
                     "Failed to deserialize persisted AI data",
-                    exception
-            );
-        }
-    }
-
-    private String toJson(
-            Object value
-    ) {
-        try {
-            return objectMapper.writeValueAsString(
-                    value
-            );
-        } catch (JsonProcessingException exception) {
-            throw new IllegalStateException(
-                    "Failed to serialize AI data for PostgreSQL",
                     exception
             );
         }

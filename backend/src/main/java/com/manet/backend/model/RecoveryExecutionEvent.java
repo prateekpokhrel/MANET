@@ -14,18 +14,11 @@ import java.time.LocalDateTime;
 public class RecoveryExecutionEvent {
 
     private Long simulationId;
-
     private Long nodeId;
-
-    private long simulationTime;
-
+    private long simulationTimestamp;
     private String action;
-
     private String status;
-
     private String message;
-
     private int affectedPackets;
-
     private LocalDateTime executedAt;
 }
