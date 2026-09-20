@@ -52,7 +52,70 @@ public class RouteManager {
 
         return Collections.emptyList();
     }
+    /**
+     * Recalculates a route from the packet's CURRENT node
+     * to its destination.
+     *
+     * This is different from routePacket(), which calculates
+     * from the original source node.
+     */
+    public boolean reroutePacket(
+            SimulatedPacket packet,
+            List<SimulatedLink> links
+    ) {
 
+        if (packet == null
+                || packet.getCurrentNodeId() == null
+                || packet.getDestinationNodeId() == null) {
+
+            return false;
+        }
+
+        Long currentNode =
+                packet.getCurrentNodeId();
+
+        Long destination =
+                packet.getDestinationNodeId();
+
+        /*
+         * Already at destination.
+         */
+        if (currentNode.equals(destination)) {
+
+            packet.setRoute(
+                    List.of(currentNode)
+            );
+
+            packet.setHopCount(0);
+
+            return true;
+        }
+
+        List<Long> newRoute =
+                findRoute(
+                        links,
+                        currentNode,
+                        destination
+                );
+
+        if (newRoute.isEmpty()) {
+
+            return false;
+        }
+
+        packet.setRoute(
+                newRoute
+        );
+
+        packet.setHopCount(
+                Math.max(
+                        0,
+                        newRoute.size() - 1
+                )
+        );
+
+        return true;
+    }
     public boolean routePacket(
             SimulatedPacket packet,
             List<SimulatedLink> links

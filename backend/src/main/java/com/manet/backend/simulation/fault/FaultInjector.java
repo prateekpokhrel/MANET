@@ -1393,7 +1393,53 @@ public class FaultInjector {
                 .findFirst()
                 .orElse(null);
     }
+    /**
+     * Marks every active simulated fault involving the specified node
+     * as mitigated by the AI recovery layer.
+     *
+     * The fault remains in memory/history but will not be reapplied
+     * on future simulation steps.
+     */
+    public synchronized void markFaultsInvolvingNodeMitigated(
+            Long nodeId
+    ) {
 
+        if (nodeId == null) {
+            return;
+        }
+
+        for (SimulatedFault fault : activeFaults) {
+
+            if (!fault.isActive()) {
+                continue;
+            }
+
+            boolean matchesNode =
+                    nodeId.equals(
+                            fault.getNodeId()
+                    )
+                            ||
+                            nodeId.equals(
+                                    fault.getSourceNodeId()
+                            )
+                            ||
+                            nodeId.equals(
+                                    fault.getDestinationNodeId()
+                            );
+
+            if (!matchesNode) {
+                continue;
+            }
+
+            fault.setActive(false);
+
+            fault.setDetected(true);
+
+            fault.setAiMitigated(true);
+
+            fault.setHumanInterventionRequired(false);
+        }
+    }
     public synchronized List<SimulatedFault> getActiveFaults() {
 
         return activeFaults.stream()

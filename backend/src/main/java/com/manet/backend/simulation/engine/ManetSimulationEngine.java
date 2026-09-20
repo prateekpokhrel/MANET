@@ -1,29 +1,24 @@
 package com.manet.backend.simulation.engine;
 
+import com.manet.backend.ai.service.AiOrchestratorService;
 import com.manet.backend.model.NetworkState;
 import com.manet.backend.model.NodePosition;
 import com.manet.backend.model.SimulatedNode;
 import com.manet.backend.model.SimulatedPacket;
 import com.manet.backend.model.SimulationParameters;
-
 import com.manet.backend.simulation.dataset.IsolationForestDatasetRecorder;
 import com.manet.backend.simulation.dataset.NodeDatasetRecord;
 import com.manet.backend.simulation.dataset.SimulationDataRecorder;
-
 import com.manet.backend.simulation.fault.FaultInjector;
 import com.manet.backend.simulation.fault.FaultScenarioParameters;
-
 import com.manet.backend.simulation.metrics.LinkMetricCollector;
 import com.manet.backend.simulation.metrics.NetworkMetricCollector;
 import com.manet.backend.simulation.metrics.NodeMetricCollector;
-
 import com.manet.backend.simulation.movement.MovementModel;
-
 import com.manet.backend.simulation.network.LinkManager;
 import com.manet.backend.simulation.network.PacketTransmissionManager;
 import com.manet.backend.simulation.network.RouteManager;
 import com.manet.backend.simulation.network.TrafficGenerator;
-
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -33,37 +28,22 @@ import java.util.concurrent.ThreadLocalRandom;
 public class ManetSimulationEngine {
 
     private final MovementModel movementModel;
-
     private final LinkManager linkManager;
-
     private final RouteManager routeManager;
-
     private final TrafficGenerator trafficGenerator;
-
     private final PacketTransmissionManager packetTransmissionManager;
-
     private final NodeMetricCollector nodeMetricCollector;
-
     private final LinkMetricCollector linkMetricCollector;
-
     private final NetworkMetricCollector networkMetricCollector;
-
     private final FaultInjector faultInjector;
-
     private final SimulationDataRecorder simulationDataRecorder;
-
     private final IsolationForestDatasetRecorder isolationForestDatasetRecorder;
+    private final AiOrchestratorService aiOrchestratorService;
 
     /*
-     * Current fault scenario.
-     *
-     * The scenario is applied according to the
-     * current simulation timestamp.
+     * Current configured fault scenario for the simulation engine.
      */
     private FaultScenarioParameters faultScenarioParameters;
-
-    // CONSTRUCTOR
-
 
     public ManetSimulationEngine(
             MovementModel movementModel,
@@ -76,45 +56,28 @@ public class ManetSimulationEngine {
             NetworkMetricCollector networkMetricCollector,
             FaultInjector faultInjector,
             SimulationDataRecorder simulationDataRecorder,
-            IsolationForestDatasetRecorder isolationForestDatasetRecorder
+            IsolationForestDatasetRecorder isolationForestDatasetRecorder,
+            AiOrchestratorService aiOrchestratorService
     ) {
-
-        this.movementModel =
-                movementModel;
-
-        this.linkManager =
-                linkManager;
-
-        this.routeManager =
-                routeManager;
-
-        this.trafficGenerator =
-                trafficGenerator;
-
-        this.packetTransmissionManager =
-                packetTransmissionManager;
-
-        this.nodeMetricCollector =
-                nodeMetricCollector;
-
-        this.linkMetricCollector =
-                linkMetricCollector;
-
-        this.networkMetricCollector =
-                networkMetricCollector;
-
-        this.faultInjector =
-                faultInjector;
-
-        this.simulationDataRecorder =
-                simulationDataRecorder;
-
+        this.movementModel = movementModel;
+        this.linkManager = linkManager;
+        this.routeManager = routeManager;
+        this.trafficGenerator = trafficGenerator;
+        this.packetTransmissionManager = packetTransmissionManager;
+        this.nodeMetricCollector = nodeMetricCollector;
+        this.linkMetricCollector = linkMetricCollector;
+        this.networkMetricCollector = networkMetricCollector;
+        this.faultInjector = faultInjector;
+        this.simulationDataRecorder = simulationDataRecorder;
         this.isolationForestDatasetRecorder =
                 isolationForestDatasetRecorder;
+        this.aiOrchestratorService =
+                aiOrchestratorService;
     }
 
+    // ============================================================
     // INITIALIZE SIMULATION
-
+    // ============================================================
 
     public NetworkState initialize(
             Long simulationId,
@@ -122,54 +85,52 @@ public class ManetSimulationEngine {
     ) {
 
         if (simulationId == null) {
-
             throw new IllegalArgumentException(
                     "Simulation ID is required"
             );
         }
 
         if (parameters == null) {
-
             throw new IllegalArgumentException(
                     "Simulation parameters are required"
             );
         }
 
+        /*
+         * Clear stale AI state when a simulation ID is reused.
+         *
+         * This clears:
+         * - latest AI analysis
+         * - LSTM history cache
+         * - recovery execution guards
+         */
+        aiOrchestratorService.clearSimulation(
+                simulationId
+        );
 
         /*
-         * Remove old dataset records for this simulation.
-         *
-         * The same SimulationDatasetRecord infrastructure
-         * is used for:
-         *
-         * - Random Forest
-         * - XGBoost
-         * - LSTM
+         * Clear old simulation dataset records.
          */
         simulationDataRecorder.initialize(
                 simulationId
         );
 
-
         /*
-         * Remove any previous fault scenario.
+         * Clear any previous fault configuration.
          */
         clearFaultScenario();
-
 
         NetworkState state =
                 new NetworkState();
 
+        // --------------------------------------------------------
         // CREATE NODES
-
+        // --------------------------------------------------------
 
         for (int i = 1;
              i <= parameters.getNodeCount();
              i++) {
 
-            /*
-             * Random initial X position.
-             */
             double x =
                     ThreadLocalRandom.current()
                             .nextDouble(
@@ -177,10 +138,6 @@ public class ManetSimulationEngine {
                                     parameters.getAreaWidth()
                             );
 
-
-            /*
-             * Random initial Y position.
-             */
             double y =
                     ThreadLocalRandom.current()
                             .nextDouble(
@@ -188,10 +145,6 @@ public class ManetSimulationEngine {
                                     parameters.getAreaHeight()
                             );
 
-
-            /*
-             * Random initial movement speed.
-             */
             double speed;
 
             if (parameters.getMaximumNodeSpeed() <= 1) {
@@ -208,7 +161,6 @@ public class ManetSimulationEngine {
                                         parameters.getMaximumNodeSpeed()
                                 );
             }
-
 
             SimulatedNode node =
                     SimulatedNode.builder()
@@ -265,14 +217,12 @@ public class ManetSimulationEngine {
 
                             .build();
 
-
             state.addNode(
                     node
             );
         }
 
-        // INITIAL SIMULATION STATE
-       state.setCurrentTime(
+        state.setCurrentTime(
                 0
         );
 
@@ -280,11 +230,13 @@ public class ManetSimulationEngine {
                 true
         );
 
-
         return state;
     }
 
+    // ============================================================
     // ONE SIMULATION STEP
+    // ============================================================
+
     public void step(
             Long simulationId,
             NetworkState state,
@@ -307,154 +259,186 @@ public class ManetSimulationEngine {
             return;
         }
 
-
         /*
-
-         * STOP CHECK
-
-         *
-         * Do not execute another step once the simulation
-         * duration has already been reached.
+         * Never execute beyond configured duration.
          */
-
         if (state.getCurrentTime()
                 >= parameters.getSimulationDuration()) {
 
             stop(state);
-
             return;
         }
 
         /*
-
-         * STEP PIPELINE
+         * ========================================================
+         * SIMULATION PIPELINE
+         * ========================================================
          *
          * 1. Move nodes
-         * 2. Calculate links
-         * 3. Apply faults
-         * 4. Recalculate links
-         * 5. Collect link metrics
-         * 6. Collect node metrics
-         * 7. Generate traffic
-         * 8. Route packets
-         * 9. Transmit packets
+         * 2. Build topology
+         * 3. Apply configured faults
+         * 4. Rebuild topology
+         * 5. Reapply active link faults
+         * 6. Collect link metrics
+         * 7. Collect node metrics
+         * 8. Generate traffic
+         * 9. Route + transmit packets
          * 10. Collect network metrics
-         * 11. Record NODE + LINK dataset
-         * 12. Advance simulation clock
+         * 11. Record simulation dataset
+         * 12. Record Isolation Forest dataset
+         * 13. Run AI + recovery execution
+         * 14. Advance simulation clock
          *
-         * This order is important for the AI datasets.
+         * AI runs BEFORE the clock advances so the models see
+         * the exact state represented by the current timestamp.
          */
 
+        // ========================================================
         // 1. MOVE NODES
-
+        // ========================================================
 
         moveNodes(
                 state,
                 parameters
         );
 
+        // ========================================================
         // 2. CALCULATE LINKS
-
+        // ========================================================
 
         updateLinks(
                 state,
                 parameters
         );
 
-        // 3. APPLY FAULTS
-       applyFaultScenario(
+        // ========================================================
+        // 3. APPLY FAULT SCENARIO
+        // ========================================================
+
+        applyFaultScenario(
                 state
         );
 
-        // 4. RECALCULATE LINKS AFTER FAULTS
+        // ========================================================
+        // 4. REBUILD LINKS AFTER FAULTS
+        // ========================================================
+
         /*
-         * Faults can change node/link availability.
-         *
-         * Therefore links are calculated again after
-         * applying the fault scenario.
+         * Faults may change node/link availability, therefore
+         * rebuild the topology after applying the scenario.
          */
         updateLinks(
                 state,
                 parameters
         );
 
-        // 5. LINK METRICS
+        // ========================================================
+        // 5. REAPPLY ACTIVE LINK FAULTS
+        // ========================================================
+
+        /*
+         * LinkManager creates new SimulatedLink objects every step.
+         *
+         * Therefore any active link fault must be applied again
+         * to the newly-created link objects.
+         */
+        faultInjector.reapplyActiveFaults(
+                state
+        );
+
+        // ========================================================
+        // 6. LINK METRICS
+        // ========================================================
+
         collectLinkMetrics(
                 state
         );
 
-        // 6. NODE METRICS
+        // ========================================================
+        // 7. NODE METRICS
+        // ========================================================
+
         collectNodeMetrics(
                 state
         );
 
-        // 7. GENERATE TRAFFIC
+        // ========================================================
+        // 8. GENERATE TRAFFIC
+        // ========================================================
+
         generateTraffic(
                 state,
                 parameters
         );
 
-        // 8 + 9. ROUTE AND TRANSMIT PACKETS
+        // ========================================================
+        // 9. ROUTE + TRANSMIT PACKETS
+        // ========================================================
 
         transmitPackets(
                 state
         );
 
+        // ========================================================
         // 10. NETWORK METRICS
+        // ========================================================
+
         collectNetworkMetrics(
                 state
         );
 
-        // 11. RECORD AI DATASET
-       /*
-         * IMPORTANT
-         *
-         * This must happen BEFORE the simulation clock
-         * is advanced.
-         *
-         * Therefore:
-         *
-         * timestamp = current network state timestamp
-         *
-         * The recorder stores:
-         *
-         * NODE records:
-         * - battery
-         * - CPU
-         * - memory
-         * - RSSI
-         * - packet loss
-         * - latency
-         * - fault information
-         *
-         * LINK records:
-         * - source node
-         * - destination node
-         * - distance
-         * - RSSI
-         * - packet loss
-         * - latency
-         * - throughput
-         * - link quality
-         * - mobility speed
-         *
-         * This allows the same simulation data to support
-         * Random Forest, XGBoost and LSTM.
-         */
+        // ========================================================
+        // 11. RECORD MAIN AI DATASET
+        // ========================================================
 
-        // RECORD DATASET
+        /*
+         * Save the current network state BEFORE AI recovery.
+         *
+         * This preserves the actual condition that caused the AI
+         * prediction, rather than recording only the post-recovery
+         * state.
+         */
         recordSimulationData(
                 simulationId,
                 state
         );
 
-        // RECORD ISOLATION FOREST DATASET
+        // ========================================================
+        // 12. RECORD ISOLATION FOREST DATASET
+        // ========================================================
+
         isolationForestDatasetRecorder.record(
                 simulationId,
                 state
         );
 
-        // ADVANCE SIMULATION CLOCK
+        // ========================================================
+        // 13. AI INFERENCE + SELF-HEALING
+        // ========================================================
+
+        /*
+         * AiOrchestratorService performs:
+         *
+         * Random Forest
+         * XGBoost
+         * Isolation Forest
+         * LSTM
+         * Recovery Engine
+         * RecoveryExecutionService
+         *
+         * Any recovery action selected by the Recovery Engine
+         * changes the in-memory MANET state here.
+         *
+         * Those state changes therefore affect the NEXT timestep.
+         */
+        aiOrchestratorService.analyzeSimulationStep(
+                simulationId,
+                state
+        );
+
+        // ========================================================
+        // 14. ADVANCE SIMULATION CLOCK
+        // ========================================================
 
         advanceSimulationTime(
                 state,
@@ -462,8 +446,11 @@ public class ManetSimulationEngine {
         );
     }
 
+    // ============================================================
     // MOVE NODES
-   private void moveNodes(
+    // ============================================================
+
+    private void moveNodes(
             NetworkState state,
             SimulationParameters parameters
     ) {
@@ -472,7 +459,6 @@ public class ManetSimulationEngine {
             return;
         }
 
-
         for (SimulatedNode node :
                 state.getNodes()) {
 
@@ -480,14 +466,12 @@ public class ManetSimulationEngine {
                 continue;
             }
 
-
             /*
-             * Failed/inactive nodes do not move.
+             * Inactive/isolated nodes do not move.
              */
             if (!node.isActive()) {
                 continue;
             }
-
 
             movementModel.move(
                     node,
@@ -498,32 +482,21 @@ public class ManetSimulationEngine {
         }
     }
 
+    // ============================================================
     // UPDATE LINKS
+    // ============================================================
+
     private void updateLinks(
             NetworkState state,
             SimulationParameters parameters
     ) {
 
         /*
-         * Remove links from the previous timestep.
+         * LinkManager calculates the current topology from
+         * the latest node positions.
          */
         state.clearLinks();
 
-
-        /*
-         * Calculate links using current node positions.
-         *
-         * LinkManager provides:
-         *
-         * - source node
-         * - destination node
-         * - distance
-         * - signal strength
-         * - quality
-         * - latency
-         * - packet loss
-         * - active state
-         */
         state.getLinks().addAll(
                 linkManager.calculateLinks(
                         state.getNodes(),
@@ -532,14 +505,16 @@ public class ManetSimulationEngine {
         );
     }
 
-
+    // ============================================================
     // APPLY FAULT SCENARIO
+    // ============================================================
+
     private void applyFaultScenario(
             NetworkState state
     ) {
 
         /*
-         * Apply the configured fault scenario.
+         * Apply the currently configured scenario.
          */
         if (faultScenarioParameters != null) {
 
@@ -549,20 +524,26 @@ public class ManetSimulationEngine {
             );
         }
 
-
         /*
-         * Reapply faults which are already active.
+         * Keep already-active faults applied to the current
+         * node/link objects.
          *
-         * This ensures faults remain active for their
-         * configured duration.
+         * This is important for node faults before topology
+         * recalculation.
+         *
+         * Link faults are reapplied again after updateLinks()
+         * in step(), because LinkManager creates fresh links.
          */
         faultInjector.reapplyActiveFaults(
                 state
         );
     }
 
-    // LINK METRICS
-   private void collectLinkMetrics(
+    // ============================================================
+    // COLLECT LINK METRICS
+    // ============================================================
+
+    private void collectLinkMetrics(
             NetworkState state
     ) {
 
@@ -575,8 +556,11 @@ public class ManetSimulationEngine {
         );
     }
 
-    // NODE METRICS
-   private void collectNodeMetrics(
+    // ============================================================
+    // COLLECT NODE METRICS
+    // ============================================================
+
+    private void collectNodeMetrics(
             NetworkState state
     ) {
 
@@ -590,8 +574,11 @@ public class ManetSimulationEngine {
         );
     }
 
-    // TRAFFIC GENERATION
-   private void generateTraffic(
+    // ============================================================
+    // GENERATE TRAFFIC
+    // ============================================================
+
+    private void generateTraffic(
             NetworkState state,
             SimulationParameters parameters
     ) {
@@ -603,11 +590,9 @@ public class ManetSimulationEngine {
                         state.getCurrentTime()
                 );
 
-
         if (packets == null) {
             return;
         }
-
 
         for (SimulatedPacket packet :
                 packets) {
@@ -616,34 +601,31 @@ public class ManetSimulationEngine {
                 continue;
             }
 
-
             /*
-             * Determine a route using the current topology.
+             * Calculate the initial route using the current topology.
              */
             routeManager.routePacket(
                     packet,
                     state.getLinks()
             );
 
-
-            /*
-             * Add packet to the network.
-             */
             state.addPacket(
                     packet
             );
         }
     }
 
+    // ============================================================
     // PACKET TRANSMISSION
-   private void transmitPackets(
+    // ============================================================
+
+    private void transmitPackets(
             NetworkState state
     ) {
 
         if (state.getPackets() == null) {
             return;
         }
-
 
         for (SimulatedPacket packet :
                 state.getPackets()) {
@@ -652,17 +634,10 @@ public class ManetSimulationEngine {
                 continue;
             }
 
-
-            /*
-             * Delivered/dropped packets require no
-             * additional transmission.
-             */
             if (packet.isDelivered()
                     || packet.isDropped()) {
-
                 continue;
             }
-
 
             packetTransmissionManager.transmit(
                     packet,
@@ -672,7 +647,10 @@ public class ManetSimulationEngine {
         }
     }
 
+    // ============================================================
     // NETWORK METRICS
+    // ============================================================
+
     private void collectNetworkMetrics(
             NetworkState state
     ) {
@@ -682,22 +660,23 @@ public class ManetSimulationEngine {
         );
     }
 
+    // ============================================================
     // RECORD DATASET
-   private void recordSimulationData(
+    // ============================================================
+
+    private void recordSimulationData(
             Long simulationId,
             NetworkState state
     ) {
 
         /*
-         * ONE unified recorder.
+         * SimulationDataRecorder handles:
          *
-         * No separate LSTM recorder is required.
+         * NODE records
+         * -> Random Forest / XGBoost
          *
-         * SimulationDataRecorder is responsible for both:
-         *
-         * NODE records -> XGBoost / Random Forest
-         *
-         * LINK records -> LSTM
+         * LINK records
+         * -> LSTM
          */
         simulationDataRecorder.record(
                 simulationId,
@@ -705,7 +684,10 @@ public class ManetSimulationEngine {
         );
     }
 
+    // ============================================================
     // ADVANCE SIMULATION TIME
+    // ============================================================
+
     private void advanceSimulationTime(
             NetworkState state,
             SimulationParameters parameters
@@ -714,66 +696,47 @@ public class ManetSimulationEngine {
         long timeStep =
                 (long) parameters.getTimeStep();
 
-
         /*
-         * Protect against zero or negative timestep.
+         * Protect against invalid timestep.
          */
         if (timeStep <= 0) {
             timeStep = 1;
         }
 
-
         long currentTime =
                 state.getCurrentTime();
-
 
         long simulationDuration =
                 (long) parameters.getSimulationDuration();
 
-
         long nextTime =
                 currentTime + timeStep;
 
-
         /*
-         * Never allow currentTime to exceed the configured
-         * simulation duration.
-         *
-         * Example:
-         *
-         * duration = 120
-         * currentTime = 119
-         * timestep = 1
-         *
-         * nextTime = 120
+         * Never exceed configured simulation duration.
          */
         if (nextTime > simulationDuration) {
-
-            nextTime =
-                    simulationDuration;
+            nextTime = simulationDuration;
         }
-
 
         state.setCurrentTime(
                 nextTime
         );
 
-
         /*
-         * Stop immediately when duration is reached.
-         *
-         * SimulationRunner will also perform its own
-         * completion check.
+         * Stop once the duration has been reached.
          */
         if (nextTime >= simulationDuration) {
-
             state.setRunning(
                     false
             );
         }
     }
 
+    // ============================================================
     // CONFIGURE FAULT SCENARIO
+    // ============================================================
+
     public void configureFaultScenario(
             FaultScenarioParameters parameters
     ) {
@@ -785,29 +748,36 @@ public class ManetSimulationEngine {
             );
         }
 
-
         this.faultScenarioParameters =
                 parameters;
     }
 
+    // ============================================================
     // CLEAR FAULT SCENARIO
+    // ============================================================
+
     public void clearFaultScenario() {
 
         this.faultScenarioParameters =
                 null;
 
-
         faultInjector.clearFaults();
     }
 
+    // ============================================================
     // GET CURRENT FAULT SCENARIO
-   public FaultScenarioParameters
+    // ============================================================
+
+    public FaultScenarioParameters
     getFaultScenarioParameters() {
 
         return faultScenarioParameters;
     }
 
+    // ============================================================
     // STOP SIMULATION
+    // ============================================================
+
     public void stop(
             NetworkState state
     ) {
@@ -816,13 +786,15 @@ public class ManetSimulationEngine {
             return;
         }
 
-
         state.setRunning(
                 false
         );
     }
 
+    // ============================================================
     // RESET SIMULATION
+    // ============================================================
+
     public void reset(
             Long simulationId,
             NetworkState state
@@ -832,74 +804,96 @@ public class ManetSimulationEngine {
             return;
         }
 
+        // --------------------------------------------------------
+        // Remove nodes
+        // --------------------------------------------------------
 
-        /*
-         * Remove nodes.
-         */
         if (state.getNodes() != null) {
-
             state.getNodes().clear();
         }
 
+        // --------------------------------------------------------
+        // Remove links
+        // --------------------------------------------------------
 
-        /*
-         * Remove links.
-         */
         if (state.getLinks() != null) {
-
             state.getLinks().clear();
         }
 
+        // --------------------------------------------------------
+        // Remove packets
+        // --------------------------------------------------------
 
-        /*
-         * Remove packets.
-         */
         if (state.getPackets() != null) {
-
             state.getPackets().clear();
         }
 
+        // --------------------------------------------------------
+        // Clear live AI information
+        // --------------------------------------------------------
 
-        /*
-         * Reset clock.
-         */
+        if (state.getAiAnalysis() != null) {
+            state.getAiAnalysis().clear();
+        }
+
+        if (state.getRecoveryEvents() != null) {
+            state.getRecoveryEvents().clear();
+        }
+
+        // --------------------------------------------------------
+        // Reset time
+        // --------------------------------------------------------
+
         state.setCurrentTime(
                 0
         );
 
+        // --------------------------------------------------------
+        // Stop simulation
+        // --------------------------------------------------------
 
-        /*
-         * Stop simulation.
-         */
         state.setRunning(
                 false
         );
 
+        // --------------------------------------------------------
+        // Clear persisted dataset
+        // --------------------------------------------------------
 
-        /*
-         * Remove dataset records.
-         */
         if (simulationId != null) {
 
             simulationDataRecorder.clear(
                     simulationId
             );
+
+            /*
+             * Clear:
+             * - AI analysis cache
+             * - LSTM history cache
+             * - recovery execution guards
+             */
+            aiOrchestratorService.clearSimulation(
+                    simulationId
+            );
         }
 
+        // --------------------------------------------------------
+        // Remove faults
+        // --------------------------------------------------------
 
-        /*
-         * Remove active faults.
-         */
         clearFaultScenario();
 
+        // --------------------------------------------------------
+        // Reset traffic generator
+        // --------------------------------------------------------
 
-        /*
-         * Reset traffic generation.
-         */
         trafficGenerator.reset();
     }
 
+    // ============================================================
     // GET NODE DATASET
+    // ============================================================
+
     public List<NodeDatasetRecord>
     getNodeDatasetRecords(
             Long simulationId
@@ -911,7 +905,10 @@ public class ManetSimulationEngine {
                 );
     }
 
+    // ============================================================
     // GET DATASET RECORD COUNT
+    // ============================================================
+
     public int getDatasetRecordCount(
             Long simulationId
     ) {
@@ -922,8 +919,11 @@ public class ManetSimulationEngine {
                 );
     }
 
+    // ============================================================
     // CLEAR DATASET
-   public void clearDatasetRecords(
+    // ============================================================
+
+    public void clearDatasetRecords(
             Long simulationId
     ) {
 

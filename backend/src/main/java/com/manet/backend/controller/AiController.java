@@ -53,8 +53,8 @@ public class AiController {
                         .filter(candidate ->
                                 candidate != null
                                         && nodeId.equals(
-                                                candidate.getNodeId()
-                                        )
+                                        candidate.getNodeId()
+                                )
                         )
                         .findFirst()
                         .orElseThrow(
@@ -123,6 +123,23 @@ public class AiController {
 
         return ResponseEntity.ok(
                 analysis
+        );
+    }
+
+    @GetMapping(
+            "/simulations/{simulationId}/recovery-events"
+    )
+    public ResponseEntity<?> getRecoveryEvents(
+            @PathVariable Long simulationId
+    ) {
+
+        NetworkState state =
+                simulationService.getSimulationState(
+                        simulationId
+                );
+
+        return ResponseEntity.ok(
+                state.getRecoveryEvents()
         );
     }
 }

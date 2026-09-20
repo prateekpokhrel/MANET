@@ -2,6 +2,7 @@ package com.manet.backend.ai.service;
 
 import com.manet.backend.ai.client.AiServiceClient;
 import com.manet.backend.ai.dto.*;
+import com.manet.backend.ai.persistence.AiPersistenceService;
 import com.manet.backend.entity.SimulationDatasetRecord;
 import com.manet.backend.model.NetworkState;
 import com.manet.backend.model.SimulatedLink;
@@ -10,6 +11,7 @@ import com.manet.backend.repository.SimulationDatasetRecordRepository;
 import com.manet.backend.simulation.fault.FaultSeverity;
 import com.manet.backend.simulation.fault.FaultType;
 import com.manet.backend.simulation.network.PacketTransmissionManager;
+import com.manet.backend.websocket.SimulationWebSocketPublisher;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
@@ -35,6 +37,9 @@ public class AiOrchestratorService {
     private final AiServiceClient aiServiceClient;
     private final SimulationDatasetRecordRepository datasetRepository;
     private final PacketTransmissionManager packetTransmissionManager;
+    private final AiPersistenceService aiPersistenceService;
+    private final RecoveryExecutionService recoveryExecutionService;
+    private final SimulationWebSocketPublisher webSocketPublisher;
 
     private final boolean enabled;
     private final boolean failFast;
@@ -60,6 +65,9 @@ public class AiOrchestratorService {
             AiServiceClient aiServiceClient,
             SimulationDatasetRecordRepository datasetRepository,
             PacketTransmissionManager packetTransmissionManager,
+            AiPersistenceService aiPersistenceService,
+            RecoveryExecutionService recoveryExecutionService,
+            SimulationWebSocketPublisher webSocketPublisher,
             @Value("${manet.ai.enabled:true}") boolean enabled,
             @Value("${manet.ai.fail-fast:false}") boolean failFast,
             @Value("${manet.ai.recovery-trigger-threshold:0.50}")
@@ -68,6 +76,9 @@ public class AiOrchestratorService {
         this.aiServiceClient = aiServiceClient;
         this.datasetRepository = datasetRepository;
         this.packetTransmissionManager = packetTransmissionManager;
+        this.aiPersistenceService = aiPersistenceService;
+        this.recoveryExecutionService = recoveryExecutionService;
+        this.webSocketPublisher = webSocketPublisher;
         this.enabled = enabled;
         this.failFast = failFast;
         this.recoveryTriggerThreshold = recoveryTriggerThreshold;
@@ -159,6 +170,7 @@ public class AiOrchestratorService {
         IsolationForestResponse isolationForest = null;
         LstmResponse lstm = null;
         RecoveryResponse recovery = null;
+        RecoveryExecutionResult recoveryExecution = null;
 
         List<String> errors = new ArrayList<>();
 
@@ -332,6 +344,32 @@ public class AiOrchestratorService {
                                     recoveryRequest
                             );
 
+                    /*
+                     * The Python model recommends the action.
+                     * Spring Boot now executes and persists the
+                     * resulting recovery action.
+                     */
+                    if (recovery != null) {
+
+                        RecoveryExecutionResult execution =
+                                recoveryExecutionService.execute(
+                                        simulationId,
+                                        state,
+                                        node,
+                                        buildPreExecutionAnalysis(
+                                                node,
+                                                state,
+                                                randomForest,
+                                                xgboost,
+                                                isolationForest,
+                                                lstm,
+                                                recovery
+                                        )
+                                );
+
+                        recoveryExecution = execution;
+                    }
+
                 } else {
 
                     errors.add(
@@ -348,6 +386,18 @@ public class AiOrchestratorService {
             }
         }
 
+        else {
+            /*
+             * The node returned to a non-triggered state. Clear the
+             * de-duplication marker so a later fault can be recovered
+             * independently in the same simulation.
+             */
+            recoveryExecutionService.clearNodeConditions(
+                    simulationId,
+                    node.getNodeId()
+            );
+        }
+
         /*
          * Build final AI response.
          */
@@ -357,6 +407,16 @@ public class AiOrchestratorService {
                 .isolationForest(isolationForest)
                 .lstm(lstm)
                 .recovery(recovery);
+
+        if (recoveryExecution != null) {
+            result
+                    .recoveryExecutionStatus(
+                            recoveryExecution.status()
+                    )
+                    .recoveryExecutionMessage(
+                            recoveryExecution.message()
+                    );
+        }
 
         if (!errors.isEmpty()) {
 
@@ -411,6 +471,38 @@ public class AiOrchestratorService {
                 analysis
         );
 
+        /*
+         * Persist the complete model snapshot so it survives
+         * application restarts and can be consumed by the dashboard.
+         */
+        aiPersistenceService.saveAnalysis(
+                simulationId,
+                analysis
+        );
+
+        /*
+         * Push the node-level AI state to subscribed frontend clients.
+         */
+        webSocketPublisher.publishAiAnalysis(
+                simulationId,
+                analysis
+        );
+
+        if (recoveryExecution != null
+                && !"ALREADY_HANDLED".equals(
+                        recoveryExecution.status()
+                )
+                && !"SKIPPED".equals(
+                        recoveryExecution.status()
+                )) {
+
+            webSocketPublisher.publishRecoveryExecution(
+                    simulationId,
+                    analysis,
+                    recoveryExecution
+            );
+        }
+
         return analysis;
     }
 
@@ -443,8 +535,9 @@ public class AiOrchestratorService {
                 .get(nodeId);
     }
 
-    /*
-     * Clear AI data when simulation is deleted/stopped/reset.
+    /**
+     * Clears only the in-memory AI state for a simulation.
+     * Persistent AI history is retained.
      */
     public void clearSimulation(
             Long simulationId
@@ -452,14 +545,29 @@ public class AiOrchestratorService {
 
         if (simulationId != null) {
 
-            latestAnalyses.remove(
-                    simulationId
-            );
+            latestAnalyses.remove(simulationId);
 
-            lstmHistoryCache.remove(
+            lstmHistoryCache.remove(simulationId);
+
+            recoveryExecutionService.clearSimulation(
                     simulationId
             );
         }
+    }
+
+    /**
+     * Explicitly delete persisted AI/recovery history.
+     * Used by simulation reset/delete.
+     */
+    public void clearPersistedSimulation(
+            Long simulationId
+    ) {
+
+        clearSimulation(simulationId);
+
+        aiPersistenceService.clearSimulation(
+                simulationId
+        );
     }
 
     /*
@@ -478,6 +586,32 @@ public class AiOrchestratorService {
                 "baseUrlConfigured",
                 true
         );
+    }
+
+    /**
+     * Builds the in-memory analysis object passed to the recovery
+     * executor before the final persisted analysis is assembled.
+     */
+    private AiNodeAnalysis buildPreExecutionAnalysis(
+            SimulatedNode node,
+            NetworkState state,
+            RandomForestResponse randomForest,
+            XgboostResponse xgboost,
+            IsolationForestResponse isolationForest,
+            LstmResponse lstm,
+            RecoveryResponse recovery
+    ) {
+
+        return AiNodeAnalysis.builder()
+                .nodeId(node.getNodeId())
+                .timestamp(state.getCurrentTime())
+                .status("READY")
+                .randomForest(randomForest)
+                .xgboost(xgboost)
+                .isolationForest(isolationForest)
+                .lstm(lstm)
+                .recovery(recovery)
+                .build();
     }
 
     /*

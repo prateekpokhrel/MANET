@@ -22,5 +22,20 @@ public class AiNodeAnalysis {
     private LstmResponse lstm;
     private RecoveryResponse recovery;
 
+    /*
+     * Result of the Spring Boot recovery execution layer.
+     *
+     * Examples:
+     * EXECUTED
+     * NOTIFIED
+     * MONITORING
+     * DISABLED
+     * SKIPPED
+     * FAILED
+     */
+    private String recoveryExecutionStatus;
+
+    private String recoveryExecutionMessage;
+
     private String message;
 }
