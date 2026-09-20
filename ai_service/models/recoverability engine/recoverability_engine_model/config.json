@@ -1,0 +1,29 @@
+{
+    "numeric_features": [
+        "failure_probability",
+        "node_health_score",
+        "battery_level",
+        "link_quality",
+        "available_neighbor_nodes",
+        "number_of_alternative_routes",
+        "alternative_route_quality",
+        "current_traffic_load",
+        "previous_recovery_history",
+        "predicted_link_quality",
+        "anomaly_score"
+    ],
+    "categorical_features": [
+        "fault_type_for_engine",
+        "fault_severity",
+        "candidate_action"
+    ],
+    "actions": [
+        "REROUTE",
+        "ISOLATE_NODE",
+        "RESTART_SERVICE",
+        "ROLLBACK_CONFIGURATION",
+        "CONTINUE_MONITORING",
+        "NOTIFY_OPERATOR"
+    ],
+    "decision_threshold": 55
+}
