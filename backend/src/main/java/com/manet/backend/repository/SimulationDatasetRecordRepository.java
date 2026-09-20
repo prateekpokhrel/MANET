@@ -10,34 +10,43 @@ import java.util.List;
 public interface SimulationDatasetRecordRepository
         extends JpaRepository<SimulationDatasetRecord, Long> {
 
-    // ALL RECORDS
-   List<SimulationDatasetRecord>
+    List<SimulationDatasetRecord>
     findBySimulationIdOrderByTimestampAscNodeIdAsc(
             Long simulationId
     );
 
-    // NODE RECORDS
-    // Used by Random Forest / XGBoost / Isolation Forest
-   List<SimulationDatasetRecord>
+    List<SimulationDatasetRecord>
     findBySimulationIdAndRecordTypeOrderByTimestampAscNodeIdAsc(
             Long simulationId,
             String recordType
     );
 
-    // LINK RECORDS
-    // Used by LSTM
-   List<SimulationDatasetRecord>
+    List<SimulationDatasetRecord>
     findBySimulationIdAndRecordTypeOrderByTimestampAsc(
             Long simulationId,
             String recordType
     );
 
-    // COUNT
-   long countBySimulationId(
-            Long simulationId
+    /*
+     * Required by the LSTM integration.
+     *
+     * Gets the latest 4 historical records for the exact
+     * source -> destination link.
+     *
+     * Spring Boot then adds the current in-memory link
+     * state to make the required 5 timestep LSTM sequence.
+     */
+    List<SimulationDatasetRecord>
+    findTop4BySimulationIdAndRecordTypeAndSourceNodeIdAndDestinationNodeIdOrderByTimestampDesc(
+            Long simulationId,
+            String recordType,
+            Long sourceNodeId,
+            Long destinationNodeId
     );
 
-    // DELETE
+    long countBySimulationId(
+            Long simulationId
+    );
 
     void deleteBySimulationId(
             Long simulationId
